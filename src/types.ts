@@ -1,0 +1,59 @@
+export type AppMode = 'travel' | 'explore'
+
+export type AppLanguage = 'vi-VN' | 'en-US' | 'zh-CN' | 'ja-JP' | 'fr-FR' | 'ko-KR'
+
+export interface UserProfile {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  photoUrl?: string
+  dateOfBirth?: string
+  gender?: string
+  createdAt: string
+}
+
+export interface StoredAccount {
+  user: UserProfile
+  password: string
+}
+
+export interface Poi {
+  id: string
+  name: Record<AppLanguage, string>
+  description: Record<AppLanguage, string>
+  latitude: number
+  longitude: number
+  radius: number
+  priority: number
+  imageUrl: Record<AppLanguage, string>
+  category: string
+}
+
+export interface Tour {
+  id: string
+  icon: string
+  estimatedMinutes: number
+  poiIds: string[]
+  name: Record<AppLanguage, string>
+  description: Record<AppLanguage, string>
+}
+
+export interface GeoPoint {
+  latitude: number
+  longitude: number
+}
+
+export interface AudioState {
+  currentSrc: string | null
+  isPlaying: boolean
+  duration: number
+  currentTime: number
+}
+
+export type AudioPlaybackStatus = 'playing' | 'blocked' | 'missing'
+
+export interface AudioPlaybackResult {
+  status: AudioPlaybackStatus
+  source: string | null
+}
