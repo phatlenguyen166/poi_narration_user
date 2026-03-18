@@ -50,13 +50,23 @@ for (const poiId of poiIds) {
 }
 
 const loginScreen = read('src/screens/LoginScreen.tsx')
-if (loginScreen.includes('data-testid=\'login-google\'') || loginScreen.includes('data-testid=\"login-google\"')) {
-  fail('login screen still exposes login-google test id')
+if (!loginScreen.includes('data-testid=\'login-google\'') && !loginScreen.includes('data-testid=\"login-google\"')) {
+  fail('login screen no longer exposes Google login action')
+}
+
+const googleAuthService = read('src/services/googleAuth.ts')
+if (!googleAuthService.includes('VITE_GOOGLE_CLIENT_ID') || !googleAuthService.includes('userinfo')) {
+  fail('google auth web flow is not wired to GIS client id + userinfo fetch')
 }
 
 const audioService = read('src/services/audio.ts')
 if (!audioService.includes("status: 'blocked'") || !audioService.includes("status: 'missing'")) {
   fail('audio service no longer preserves blocked/missing playback separation')
+}
+
+const appSource = read('src/App.tsx')
+if (!appSource.includes('getTourById(activeTourId)')) {
+  fail('route guard does not validate active tour id against tour data')
 }
 
 if (process.exitCode !== 1) {

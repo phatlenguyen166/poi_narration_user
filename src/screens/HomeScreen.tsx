@@ -15,7 +15,7 @@ const noGeolocationSupport = typeof navigator !== 'undefined' && !navigator.geol
 export const HomeScreen = () => {
   const navigate = useNavigate()
   const t = useTranslation()
-  const { language, mode, activeTourId } = useApp()
+  const { language, mode, activeTourId, backgroundMode } = useApp()
   const { data: pois = [] } = usePoisQuery()
   const { data: tours = [] } = useToursQuery()
   const { state: audioState, pause, play, stop, seek, formatTime } = useAudioPlayer()
@@ -37,6 +37,9 @@ export const HomeScreen = () => {
     if (mode === 'travel' && activeTour) {
       const idSet = new Set(activeTour.poiIds)
       return pois.filter((poi) => idSet.has(poi.id))
+    }
+    if (mode === 'travel') {
+      return []
     }
     return pois
   }, [activeTour, mode, pois])
@@ -93,66 +96,88 @@ export const HomeScreen = () => {
   }, [audioState.currentSrc, language, scopedPois])
 
   useEffect(() => {
-    if (mode === 'travel' && !activeTourId) {
+    if (mode === 'travel' && (!activeTourId || !activeTour)) {
       navigate('/tour-selection', { replace: true })
     }
-  }, [activeTourId, mode, navigate])
+  }, [activeTour, activeTourId, mode, navigate])
 
   useEffect(() => {
     setTrackingMode(desiredTrackingMode)
   }, [desiredTrackingMode])
 
   useEffect(() => {
-    if (!navigator.geolocation || mode !== 'travel') {
+    if (!navigator.geolocation || mode !== 'travel' || !activeTour) {
       return
     }
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      async (position) => {
-        const nextLocation: GeoPoint = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        }
-        setUserLocation(nextLocation)
-        setLocationError(null)
-
-        const nearby = findNearbyPoi(nextLocation, scopedPois)
-        if (!nearby) {
-          return
-        }
-
-        const differentPoi = lastTriggerPoiIdRef.current !== nearby.id
-        const allowCooldown = shouldTriggerCooldown(lastTriggerTimeRef.current)
-        if (!differentPoi && !allowCooldown) {
-          return
-        }
-
-        lastTriggerPoiIdRef.current = nearby.id
-        lastTriggerTimeRef.current = Date.now()
-        const playback = await audioService.playSources(buildAudioCandidates(nearby.id, language))
-        if (playback.status === 'missing') {
-          setMessage(t('no_audio_for_language'))
-        } else {
-          setMessage(null)
-        }
-      },
-      (error) => {
-        setLocationError(error.message || t('location_unavailable'))
-      },
-      {
-        enableHighAccuracy: trackingMode !== 'low',
-        timeout: trackingMode === 'high' ? 10000 : 15000,
-        maximumAge: trackingMode === 'high' ? 0 : trackingMode === 'normal' ? 5000 : 15000
-      }
-    )
-
-    return () => {
+    const clearWatch = () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current)
         watchIdRef.current = null
       }
     }
-  }, [language, mode, scopedPois, t, trackingMode])
+
+    const startWatch = () => {
+      if (watchIdRef.current !== null) {
+        return
+      }
+
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        async (position) => {
+          const nextLocation: GeoPoint = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }
+          setUserLocation(nextLocation)
+          setLocationError(null)
+
+          const nearby = findNearbyPoi(nextLocation, scopedPois)
+          if (!nearby) {
+            return
+          }
+
+          const differentPoi = lastTriggerPoiIdRef.current !== nearby.id
+          const allowCooldown = shouldTriggerCooldown(lastTriggerTimeRef.current)
+          if (!differentPoi && !allowCooldown) {
+            return
+          }
+
+          lastTriggerPoiIdRef.current = nearby.id
+          lastTriggerTimeRef.current = Date.now()
+          const playback = await audioService.playSources(buildAudioCandidates(nearby.id, language))
+          if (playback.status === 'missing') {
+            setMessage(t('no_audio_for_language'))
+          } else {
+            setMessage(null)
+          }
+        },
+        (error) => {
+          setLocationError(error.message || t('location_unavailable'))
+        },
+        {
+          enableHighAccuracy: trackingMode !== 'low',
+          timeout: trackingMode === 'high' ? 10000 : 15000,
+          maximumAge: trackingMode === 'high' ? 0 : trackingMode === 'normal' ? 5000 : 15000
+        }
+      )
+    }
+
+    const syncTrackingWithVisibility = () => {
+      if (document.hidden && !backgroundMode) {
+        clearWatch()
+        return
+      }
+      startWatch()
+    }
+
+    syncTrackingWithVisibility()
+    document.addEventListener('visibilitychange', syncTrackingWithVisibility)
+
+    return () => {
+      document.removeEventListener('visibilitychange', syncTrackingWithVisibility)
+      clearWatch()
+    }
+  }, [activeTour, backgroundMode, language, mode, scopedPois, t, trackingMode])
 
   const playPoi = async (poi: Poi): Promise<void> => {
     await audioService.unlock()
@@ -166,6 +191,10 @@ export const HomeScreen = () => {
 
   const locationBanner =
     mode === 'travel' ? (noGeolocationSupport ? t('location_unavailable') : locationError) : null
+  const backgroundTrackingNote =
+    mode === 'travel' && backgroundMode
+      ? t('background_tracking_desc')
+      : null
 
   return (
     <div data-testid='home-screen'>
@@ -259,6 +288,7 @@ export const HomeScreen = () => {
             )}
           </div>
           {locationBanner && <div className='notice notice-error'>{locationBanner}</div>}
+          {backgroundTrackingNote && <div className='notice notice-success'>{backgroundTrackingNote}</div>}
           {message && <div className='notice notice-error'>{message}</div>}
         </div>
 

@@ -13,13 +13,42 @@ export const SettingsScreen = () => {
   const [selectedLanguage, setSelectedLanguage] = useState(language)
   const [selectedBackgroundMode, setSelectedBackgroundMode] = useState(backgroundMode)
   const [message, setMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const save = (): void => {
     setMode(selectedMode)
     setLanguage(selectedLanguage)
     setBackgroundMode(selectedBackgroundMode)
     setMessage(t('settings_saved'))
+    setErrorMessage(null)
     window.setTimeout(() => navigate(-1), 500)
+  }
+
+  const toggleBackgroundMode = async (enabled: boolean): Promise<void> => {
+    if (!enabled) {
+      setSelectedBackgroundMode(false)
+      setErrorMessage(null)
+      return
+    }
+
+    if (!('permissions' in navigator) || !navigator.permissions?.query) {
+      setSelectedBackgroundMode(true)
+      setErrorMessage(null)
+      return
+    }
+
+    try {
+      const status = await navigator.permissions.query({ name: 'geolocation' })
+      if (status.state === 'denied') {
+        setErrorMessage(t('permission_description'))
+        return
+      }
+      setSelectedBackgroundMode(true)
+      setErrorMessage(null)
+    } catch {
+      setSelectedBackgroundMode(true)
+      setErrorMessage(null)
+    }
   }
 
   return (
@@ -107,7 +136,9 @@ export const SettingsScreen = () => {
             </span>
             <input
               checked={selectedBackgroundMode}
-              onChange={(event) => setSelectedBackgroundMode(event.target.checked)}
+              onChange={(event) => {
+                void toggleBackgroundMode(event.target.checked)
+              }}
               type='checkbox'
               data-testid='settings-background-mode'
               className='h-4 w-4 accent-orange-500'
@@ -115,6 +146,12 @@ export const SettingsScreen = () => {
           </label>
           <p className='settings-note'>{t('background_tracking_warning')}</p>
         </section>
+
+        {errorMessage && (
+          <div className='notice notice-error' data-testid='settings-error'>
+            {errorMessage}
+          </div>
+        )}
 
         {message && (
           <div className='notice notice-success' data-testid='settings-message'>

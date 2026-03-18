@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { MobileFrame } from './components/MobileFrame'
 import { useApp } from './context/useApp'
+import { getTourById } from './data/tours'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoginScreen } from './screens/LoginScreen'
 import { PoiDetailScreen } from './screens/PoiDetailScreen'
@@ -11,6 +12,7 @@ import { WelcomeScreen } from './screens/WelcomeScreen'
 
 const RootRedirect = () => {
   const { isLoggedIn, firstLaunch, mode, activeTourId } = useApp()
+  const hasValidActiveTour = Boolean(activeTourId && getTourById(activeTourId))
 
   if (!isLoggedIn) {
     return <Navigate to='/login' replace />
@@ -18,7 +20,7 @@ const RootRedirect = () => {
   if (firstLaunch) {
     return <Navigate to='/welcome' replace />
   }
-  if (mode === 'travel' && !activeTourId) {
+  if (mode === 'travel' && !hasValidActiveTour) {
     return <Navigate to='/tour-selection' replace />
   }
   return <Navigate to='/home' replace />
@@ -42,10 +44,11 @@ const RequireAuth = () => {
 
 const RequireAppReady = () => {
   const { firstLaunch, mode, activeTourId } = useApp()
+  const hasValidActiveTour = Boolean(activeTourId && getTourById(activeTourId))
   if (firstLaunch) {
     return <Navigate to='/welcome' replace />
   }
-  if (mode === 'travel' && !activeTourId) {
+  if (mode === 'travel' && !hasValidActiveTour) {
     return <Navigate to='/tour-selection' replace />
   }
   return <Outlet />

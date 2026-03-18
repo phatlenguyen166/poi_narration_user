@@ -1,4 +1,5 @@
 import { preferences } from './preferences'
+import { signInWithGooglePopup } from './googleAuth'
 import type { StoredAccount, UserProfile } from '../types'
 
 export type AuthErrorKey =
@@ -6,6 +7,8 @@ export type AuthErrorKey =
   | 'invalid_credentials'
   | 'email_already_registered'
   | 'google_not_configured'
+  | 'google_sign_in_failed'
+  | 'cancelled'
   | 'error_occurred'
 
 export interface AuthResult {
@@ -114,7 +117,40 @@ class AuthService {
   }
 
   async signInWithGoogle(): Promise<AuthResult> {
-    return { user: null, error: 'google_not_configured' }
+    try {
+      const googleUser = await signInWithGooglePopup()
+      const accounts = this.loadAccounts()
+      const key = googleUser.email.trim().toLowerCase()
+
+      let account = accounts[key]
+      if (!account) {
+        account = {
+          user: {
+            id: `google_${googleUser.sub}`,
+            name: googleUser.name || googleUser.email.split('@')[0] || 'Google User',
+            email: key,
+            photoUrl: googleUser.picture || undefined,
+            createdAt: new Date().toISOString()
+          },
+          password: ''
+        }
+        accounts[key] = account
+        this.saveAccounts(accounts)
+      }
+
+      this.saveSession(account.user)
+      return { user: account.user, error: null }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'google_not_configured') {
+          return { user: null, error: 'google_not_configured' }
+        }
+        if (error.message === 'cancelled') {
+          return { user: null, error: 'cancelled' }
+        }
+      }
+      return { user: null, error: 'google_sign_in_failed' }
+    }
   }
 
   signOut(): void {

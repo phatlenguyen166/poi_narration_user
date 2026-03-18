@@ -9,7 +9,7 @@ const DEFAULT_TEST_PASSWORD = 'secret123'
 export const LoginScreen = () => {
   const navigate = useNavigate()
   const t = useTranslation()
-  const { signInWithEmail } = useApp()
+  const { signInWithEmail, signInWithGoogle } = useApp()
 
   const [email, setEmail] = useState(DEFAULT_TEST_EMAIL)
   const [password, setPassword] = useState(DEFAULT_TEST_PASSWORD)
@@ -31,6 +31,20 @@ export const LoginScreen = () => {
       setErrorMessage(t(error))
       return
     }
+    navigate('/', { replace: true })
+  }
+
+  const signInGoogle = async (): Promise<void> => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    const error = await signInWithGoogle()
+    setIsLoading(false)
+
+    if (error) {
+      setErrorMessage(t(error))
+      return
+    }
+
     navigate('/', { replace: true })
   }
 
@@ -100,6 +114,18 @@ export const LoginScreen = () => {
             {isLoading ? t('signing_in') : t('sign_in')}
           </button>
 
+          <button
+            type='button'
+            onClick={() => {
+              void signInGoogle()
+            }}
+            disabled={isLoading}
+            data-testid='login-google'
+            className='button button-secondary'
+          >
+            {t('sign_in_with_google')}
+          </button>
+
           <p className='auth-form__footer'>
             {t('no_account_yet')}{' '}
             <Link to='/register' className='inline-link'>
@@ -107,7 +133,6 @@ export const LoginScreen = () => {
             </Link>
           </p>
 
-          <p className='helper-copy'>{t('google_not_configured')}</p>
           <p className='helper-copy'>
             Tai khoan test: {DEFAULT_TEST_EMAIL} / {DEFAULT_TEST_PASSWORD}
           </p>
