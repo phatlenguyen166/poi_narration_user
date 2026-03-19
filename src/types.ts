@@ -13,13 +13,18 @@ export interface UserProfile {
   createdAt: string
 }
 
-export interface StoredAccount {
-  user: UserProfile
-  password: string
+export interface PoiContent {
+  languageCode: string
+  languageName: string
+  scriptText: string
+  audioUrl: string | null
 }
 
 export interface Poi {
   id: string
+  stallId?: string
+  stallName?: string
+  stallDescription?: Record<AppLanguage, string>
   name: Record<AppLanguage, string>
   description: Record<AppLanguage, string>
   latitude: number
@@ -28,6 +33,7 @@ export interface Poi {
   priority: number
   imageUrl: Record<AppLanguage, string>
   category: string
+  contents?: PoiContent[]
 }
 
 export interface Tour {

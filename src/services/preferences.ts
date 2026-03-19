@@ -99,10 +99,39 @@ export const preferences = {
     }
     set(STORAGE_KEYS.userJson, json)
   },
-  getUserAccountsJson(): string | null {
-    return get(STORAGE_KEYS.userAccounts)
+  getAccessToken(): string | null {
+    return get(STORAGE_KEYS.accessToken)
   },
-  setUserAccountsJson(json: string): void {
-    set(STORAGE_KEYS.userAccounts, json)
+  setAccessToken(token: string | null): void {
+    if (token === null) {
+      remove(STORAGE_KEYS.accessToken)
+      return
+    }
+    set(STORAGE_KEYS.accessToken, token)
+  },
+  getRefreshToken(): string | null {
+    return get(STORAGE_KEYS.refreshToken)
+  },
+  setRefreshToken(token: string | null): void {
+    if (token === null) {
+      remove(STORAGE_KEYS.refreshToken)
+      return
+    }
+    set(STORAGE_KEYS.refreshToken, token)
+  },
+  getPendingRoute(): string | null {
+    return get(STORAGE_KEYS.pendingRoute)
+  },
+  setPendingRoute(route: string | null): void {
+    if (route === null) {
+      remove(STORAGE_KEYS.pendingRoute)
+      return
+    }
+    set(STORAGE_KEYS.pendingRoute, route)
+  },
+  consumePendingRoute(): string | null {
+    const route = get(STORAGE_KEYS.pendingRoute)
+    remove(STORAGE_KEYS.pendingRoute)
+    return route
   }
 }

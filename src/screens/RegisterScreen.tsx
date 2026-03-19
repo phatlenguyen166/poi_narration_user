@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { useTranslation } from '../hooks/useTranslation'
+import { preferences } from '../services/preferences'
 
 export const RegisterScreen = () => {
   const t = useTranslation()
@@ -58,7 +59,7 @@ export const RegisterScreen = () => {
       return
     }
 
-    navigate('/', { replace: true })
+    navigate(preferences.consumePendingRoute() ?? '/', { replace: true })
   }
 
   return (

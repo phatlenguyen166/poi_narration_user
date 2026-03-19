@@ -1,6 +1,7 @@
+import axios from 'axios'
+import { api } from './api'
 import { preferences } from './preferences'
-import { signInWithGooglePopup } from './googleAuth'
-import type { StoredAccount, UserProfile } from '../types'
+import type { UserProfile } from '../types'
 
 export type AuthErrorKey =
   | 'email_not_registered'
@@ -16,16 +17,16 @@ export interface AuthResult {
   error: AuthErrorKey | null
 }
 
-type AccountsMap = Record<string, StoredAccount>
-
-const TEST_ACCOUNT: StoredAccount = {
+interface AuthResponse {
+  accessToken: string
+  refreshToken: string
   user: {
-    id: 'local_test_account',
-    name: 'Tai khoan Test',
-    email: 'demo@example.com',
-    createdAt: '2026-03-16T00:00:00.000Z'
-  },
-  password: 'secret123'
+    id: number
+    name: string
+    email: string
+    phoneNumber?: string | null
+    role?: string | null
+  }
 }
 
 class AuthService {
@@ -34,9 +35,10 @@ class AuthService {
   initialize(): UserProfile | null {
     const isLoggedIn = preferences.isLoggedIn()
     const userJson = preferences.getUserJson()
+    const accessToken = preferences.getAccessToken()
 
-    if (!isLoggedIn || userJson === null) {
-      this.currentUser = null
+    if (!isLoggedIn || userJson === null || !accessToken) {
+      this.clearSession()
       return null
     }
 
@@ -44,9 +46,7 @@ class AuthService {
       this.currentUser = JSON.parse(userJson) as UserProfile
       return this.currentUser
     } catch {
-      this.currentUser = null
-      preferences.setLoggedIn(false)
-      preferences.setUserJson(null)
+      this.clearSession()
       return null
     }
   }
@@ -57,21 +57,14 @@ class AuthService {
 
   async signInWithEmail(email: string, password: string): Promise<AuthResult> {
     try {
-      const key = email.trim().toLowerCase()
-      const accounts = this.loadAccounts()
-      const account = accounts[key]
-
-      if (!account) {
-        return { user: null, error: 'email_not_registered' }
-      }
-      if (account.password !== password) {
-        return { user: null, error: 'invalid_credentials' }
-      }
-
-      this.saveSession(account.user)
-      return { user: account.user, error: null }
-    } catch {
-      return { user: null, error: 'error_occurred' }
+      const { data } = await api.post<AuthResponse>('/api/v1/auth/login', {
+        email: email.trim().toLowerCase(),
+        password
+      })
+      const user = this.saveSession(data)
+      return { user, error: null }
+    } catch (error) {
+      return { user: null, error: this.mapAuthError(error) }
     }
   }
 
@@ -85,114 +78,74 @@ class AuthService {
     photoUrl?: string
   }): Promise<AuthResult> {
     try {
-      const accounts = this.loadAccounts()
-      const key = params.email.trim().toLowerCase()
-
-      if (accounts[key]) {
-        return { user: null, error: 'email_already_registered' }
-      }
-
-      const user: UserProfile = {
-        id: `local_${Date.now()}`,
+      const { data } = await api.post<AuthResponse>('/api/v1/auth/tourist/register', {
         name: params.name.trim(),
-        email: key,
-        phone: params.phone?.trim() || undefined,
-        dateOfBirth: params.dateOfBirth,
-        gender: params.gender,
-        photoUrl: params.photoUrl,
-        createdAt: new Date().toISOString()
-      }
-
-      accounts[key] = {
-        user,
+        email: params.email.trim().toLowerCase(),
+        phoneNumber: params.phone?.trim() || null,
+        dateOfBirth: params.dateOfBirth || null,
+        gender: params.gender || null,
+        photoUrl: params.photoUrl || null,
         password: params.password
-      }
-      this.saveAccounts(accounts)
-      this.saveSession(user)
-
+      })
+      const user = this.saveSession(data)
       return { user, error: null }
-    } catch {
-      return { user: null, error: 'error_occurred' }
+    } catch (error) {
+      return { user: null, error: this.mapAuthError(error) }
     }
   }
 
   async signInWithGoogle(): Promise<AuthResult> {
-    try {
-      const googleUser = await signInWithGooglePopup()
-      const accounts = this.loadAccounts()
-      const key = googleUser.email.trim().toLowerCase()
-
-      let account = accounts[key]
-      if (!account) {
-        account = {
-          user: {
-            id: `google_${googleUser.sub}`,
-            name: googleUser.name || googleUser.email.split('@')[0] || 'Google User',
-            email: key,
-            photoUrl: googleUser.picture || undefined,
-            createdAt: new Date().toISOString()
-          },
-          password: ''
-        }
-        accounts[key] = account
-        this.saveAccounts(accounts)
-      }
-
-      this.saveSession(account.user)
-      return { user: account.user, error: null }
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === 'google_not_configured') {
-          return { user: null, error: 'google_not_configured' }
-        }
-        if (error.message === 'cancelled') {
-          return { user: null, error: 'cancelled' }
-        }
-      }
-      return { user: null, error: 'google_sign_in_failed' }
-    }
+    return { user: null, error: 'google_not_configured' }
   }
 
   signOut(): void {
+    this.clearSession()
+  }
+
+  private saveSession(response: AuthResponse): UserProfile {
+    const user: UserProfile = {
+      id: String(response.user.id),
+      name: response.user.name,
+      email: response.user.email,
+      phone: response.user.phoneNumber || undefined,
+      createdAt: new Date().toISOString()
+    }
+
+    this.currentUser = user
+    preferences.setLoggedIn(true)
+    preferences.setAccessToken(response.accessToken)
+    preferences.setRefreshToken(response.refreshToken)
+    preferences.setUserJson(JSON.stringify(user))
+    return user
+  }
+
+  private clearSession(): void {
     this.currentUser = null
     preferences.setLoggedIn(false)
+    preferences.setAccessToken(null)
+    preferences.setRefreshToken(null)
     preferences.setUserJson(null)
   }
 
-  private saveSession(user: UserProfile): void {
-    this.currentUser = user
-    preferences.setLoggedIn(true)
-    preferences.setUserJson(JSON.stringify(user))
-  }
-
-  private loadAccounts(): AccountsMap {
-    const raw = preferences.getUserAccountsJson()
-    if (!raw) {
-      return this.ensureTestAccount({})
-    }
-    try {
-      return this.ensureTestAccount(JSON.parse(raw) as AccountsMap)
-    } catch {
-      return this.ensureTestAccount({})
-    }
-  }
-
-  private saveAccounts(accounts: AccountsMap): void {
-    preferences.setUserAccountsJson(JSON.stringify(accounts))
-  }
-
-  private ensureTestAccount(accounts: AccountsMap): AccountsMap {
-    const key = TEST_ACCOUNT.user.email.toLowerCase()
-    if (accounts[key]) {
-      return accounts
+  private mapAuthError(error: unknown): AuthErrorKey {
+    if (!axios.isAxiosError(error)) {
+      return 'error_occurred'
     }
 
-    const nextAccounts = {
-      ...accounts,
-      [key]: TEST_ACCOUNT
+    const message = String(error.response?.data?.message || '').toLowerCase()
+    const status = error.response?.status
+
+    if (status === 409 || message.includes('đã tồn tại') || message.includes('already')) {
+      return 'email_already_registered'
     }
-    this.saveAccounts(nextAccounts)
-    return nextAccounts
+    if (status === 401 || status === 403 || message.includes('mật khẩu') || message.includes('password')) {
+      return 'invalid_credentials'
+    }
+    if (status === 404 || message.includes('không tìm thấy') || message.includes('not found')) {
+      return 'email_not_registered'
+    }
+
+    return 'error_occurred'
   }
 }
 

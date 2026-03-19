@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { useTranslation } from '../hooks/useTranslation'
+import { preferences } from '../services/preferences'
 
-const DEFAULT_TEST_EMAIL = 'demo@example.com'
-const DEFAULT_TEST_PASSWORD = 'secret123'
+const DEFAULT_TEST_EMAIL = 'tourist@poi.local'
+const DEFAULT_TEST_PASSWORD = 'Tourist@123'
 
 export const LoginScreen = () => {
   const navigate = useNavigate()
@@ -31,7 +32,7 @@ export const LoginScreen = () => {
       setErrorMessage(t(error))
       return
     }
-    navigate('/', { replace: true })
+    navigate(preferences.consumePendingRoute() ?? '/', { replace: true })
   }
 
   const signInGoogle = async (): Promise<void> => {
@@ -45,7 +46,7 @@ export const LoginScreen = () => {
       return
     }
 
-    navigate('/', { replace: true })
+    navigate(preferences.consumePendingRoute() ?? '/', { replace: true })
   }
 
   return (

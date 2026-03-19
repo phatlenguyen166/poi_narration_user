@@ -1,23 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { usePoisQuery, useToursQuery } from '../hooks/useRepository'
 import { useTranslation } from '../hooks/useTranslation'
 import { audioService } from '../services/audio'
+import { createMovementLog, createPlaybackLog, filterPoisByActiveTour, getAudioSources, poiHasAudioSource } from '../services/repository'
 import type { GeoPoint, Poi } from '../types'
 import { findNearbyPoi, getDistanceToNearestPoi, shouldTriggerCooldown } from '../utils/distance'
-import { buildAudioCandidates, getLocalized, modeIcon } from '../utils/localization'
+import { getLocalized, modeIcon } from '../utils/localization'
 import { PoiMap } from '../components/PoiMap'
 
 const noGeolocationSupport = typeof navigator !== 'undefined' && !navigator.geolocation
 
 export const HomeScreen = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const t = useTranslation()
   const { language, mode, activeTourId, backgroundMode } = useApp()
   const { data: pois = [] } = usePoisQuery()
-  const { data: tours = [] } = useToursQuery()
+  const { data: tours = [], isLoading: isToursLoading } = useToursQuery()
   const { state: audioState, pause, play, stop, seek, formatTime } = useAudioPlayer()
 
   const [searchText, setSearchText] = useState('')
@@ -30,19 +32,21 @@ export const HomeScreen = () => {
   const watchIdRef = useRef<number | null>(null)
   const lastTriggerPoiIdRef = useRef<string | null>(null)
   const lastTriggerTimeRef = useRef<number | null>(null)
+  const qrStallId = searchParams.get('stallId')
+  const qrPoiId = searchParams.get('poiId')
 
   const activeTour = useMemo(() => tours.find((tour) => tour.id === activeTourId) ?? null, [activeTourId, tours])
 
   const scopedPois = useMemo(() => {
     if (mode === 'travel' && activeTour) {
-      const idSet = new Set(activeTour.poiIds)
-      return pois.filter((poi) => idSet.has(poi.id))
+      return filterPoisByActiveTour(pois, activeTour.id)
     }
     if (mode === 'travel') {
       return []
     }
-    return pois
-  }, [activeTour, mode, pois])
+    const filteredByQr = qrStallId ? pois.filter((poi) => poi.stallId === qrStallId) : pois
+    return qrPoiId ? filteredByQr.filter((poi) => poi.id === qrPoiId) : filteredByQr
+  }, [activeTour, mode, pois, qrPoiId, qrStallId])
 
   const filteredPois = useMemo(() => {
     const query = searchText.trim().toLowerCase()
@@ -91,15 +95,22 @@ export const HomeScreen = () => {
     if (!audioState.currentSrc) {
       return null
     }
-    const currentPoi = scopedPois.find((poi) => audioState.currentSrc?.includes(`/audio/${poi.id}`))
+    const currentPoi = scopedPois.find((poi) => poiHasAudioSource(poi, audioState.currentSrc))
     return currentPoi ? getLocalized(currentPoi.name, language) : null
   }, [audioState.currentSrc, language, scopedPois])
 
   useEffect(() => {
-    if (mode === 'travel' && (!activeTourId || !activeTour)) {
+    if (mode === 'travel' && !isToursLoading && (!activeTourId || !activeTour)) {
       navigate('/tour-selection', { replace: true })
     }
-  }, [activeTour, activeTourId, mode, navigate])
+  }, [activeTour, activeTourId, isToursLoading, mode, navigate])
+
+  useEffect(() => {
+    if (!qrPoiId) {
+      return
+    }
+    setSelectedPoiId(qrPoiId)
+  }, [qrPoiId])
 
   useEffect(() => {
     setTrackingMode(desiredTrackingMode)
@@ -132,6 +143,16 @@ export const HomeScreen = () => {
           setLocationError(null)
 
           const nearby = findNearbyPoi(nextLocation, scopedPois)
+          const movementTarget = nearby ?? scopedPois[0] ?? null
+          if (movementTarget?.stallId) {
+            void createMovementLog({
+              stallId: movementTarget.stallId,
+              poiId: nearby?.id,
+              position: nextLocation,
+              accuracyMeters: Math.round(position.coords.accuracy || 0),
+              source: 'travel_watch'
+            })
+          }
           if (!nearby) {
             return
           }
@@ -144,7 +165,15 @@ export const HomeScreen = () => {
 
           lastTriggerPoiIdRef.current = nearby.id
           lastTriggerTimeRef.current = Date.now()
-          const playback = await audioService.playSources(buildAudioCandidates(nearby.id, language))
+          if (nearby.stallId) {
+            void createPlaybackLog({
+              stallId: nearby.stallId,
+              poiId: nearby.id,
+              language,
+              listenDurationSeconds: 0
+            })
+          }
+          const playback = await audioService.playSources(getAudioSources(nearby, language))
           if (playback.status === 'missing') {
             setMessage(t('no_audio_for_language'))
           } else {
@@ -181,7 +210,15 @@ export const HomeScreen = () => {
 
   const playPoi = async (poi: Poi): Promise<void> => {
     await audioService.unlock()
-    const playback = await audioService.playSources(buildAudioCandidates(poi.id, language))
+    if (poi.stallId) {
+      void createPlaybackLog({
+        stallId: poi.stallId,
+        poiId: poi.id,
+        language,
+        listenDurationSeconds: 0
+      })
+    }
+    const playback = await audioService.playSources(getAudioSources(poi, language))
     if (playback.status === 'missing') {
       setMessage(t('no_audio_for_language'))
       return

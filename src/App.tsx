@@ -1,10 +1,10 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { MobileFrame } from './components/MobileFrame'
 import { useApp } from './context/useApp'
-import { getTourById } from './data/tours'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoginScreen } from './screens/LoginScreen'
 import { PoiDetailScreen } from './screens/PoiDetailScreen'
+import { QrResolveScreen } from './screens/QrResolveScreen'
 import { RegisterScreen } from './screens/RegisterScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { TourSelectionScreen } from './screens/TourSelectionScreen'
@@ -12,7 +12,6 @@ import { WelcomeScreen } from './screens/WelcomeScreen'
 
 const RootRedirect = () => {
   const { isLoggedIn, firstLaunch, mode, activeTourId } = useApp()
-  const hasValidActiveTour = Boolean(activeTourId && getTourById(activeTourId))
 
   if (!isLoggedIn) {
     return <Navigate to='/login' replace />
@@ -20,7 +19,7 @@ const RootRedirect = () => {
   if (firstLaunch) {
     return <Navigate to='/welcome' replace />
   }
-  if (mode === 'travel' && !hasValidActiveTour) {
+  if (mode === 'travel' && !activeTourId) {
     return <Navigate to='/tour-selection' replace />
   }
   return <Navigate to='/home' replace />
@@ -44,11 +43,10 @@ const RequireAuth = () => {
 
 const RequireAppReady = () => {
   const { firstLaunch, mode, activeTourId } = useApp()
-  const hasValidActiveTour = Boolean(activeTourId && getTourById(activeTourId))
   if (firstLaunch) {
     return <Navigate to='/welcome' replace />
   }
-  if (mode === 'travel' && !hasValidActiveTour) {
+  if (mode === 'travel' && !activeTourId) {
     return <Navigate to='/tour-selection' replace />
   }
   return <Outlet />
@@ -72,6 +70,8 @@ function App() {
           <Route path='/login' element={<LoginScreen />} />
           <Route path='/register' element={<RegisterScreen />} />
         </Route>
+
+        <Route path='/qr/:targetType/:targetId' element={<QrResolveScreen />} />
 
         <Route element={<RequireAuth />}>
           <Route element={<RequireFirstLaunch />}>

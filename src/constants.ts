@@ -8,7 +8,9 @@ export const STORAGE_KEYS = {
   activeTourId: 'active_tour_id',
   isLoggedIn: 'is_logged_in',
   userJson: 'user_json',
-  userAccounts: 'user_accounts'
+  accessToken: 'access_token',
+  refreshToken: 'refresh_token',
+  pendingRoute: 'pending_route'
 } as const
 
 export const APP_CONSTANTS = {

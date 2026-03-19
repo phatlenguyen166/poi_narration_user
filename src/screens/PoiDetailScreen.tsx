@@ -5,7 +5,8 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { usePoisQuery } from '../hooks/useRepository'
 import { useTranslation } from '../hooks/useTranslation'
 import { audioService } from '../services/audio'
-import { buildAudioCandidates, getLocalized } from '../utils/localization'
+import { createPlaybackLog, getAudioSources, poiHasAudioSource } from '../services/repository'
+import { getLocalized } from '../utils/localization'
 
 export const PoiDetailScreen = () => {
   const navigate = useNavigate()
@@ -17,7 +18,7 @@ export const PoiDetailScreen = () => {
   const [message, setMessage] = useState<string | null>(null)
 
   const poi = useMemo(() => pois.find((item) => item.id === poiId), [poiId, pois])
-  const isCurrentPoiAudio = Boolean(poi && state.currentSrc?.includes(`/audio/${poi.id}`))
+  const isCurrentPoiAudio = Boolean(poi && poiHasAudioSource(poi, state.currentSrc))
 
   if (!poi) {
     return (
@@ -33,9 +34,18 @@ export const PoiDetailScreen = () => {
   const playNarration = async (): Promise<void> => {
     setMessage(null)
     await audioService.unlock()
-    const playback = await audioService.playSources(buildAudioCandidates(poi.id, language))
+    if (poi.stallId) {
+      void createPlaybackLog({
+        stallId: poi.stallId,
+        poiId: poi.id,
+        language,
+        listenDurationSeconds: 0
+      })
+    }
+    const playback = await audioService.playSources(getAudioSources(poi, language))
     if (playback.status === 'missing') {
       setMessage(t('no_audio_for_language'))
+      return
     }
   }
 
