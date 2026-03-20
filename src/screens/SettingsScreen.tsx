@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { APP_LANGUAGES } from '../constants'
 import { useApp } from '../context/useApp'
+import { useAvailableLanguages } from '../hooks/useAvailableLanguages'
 import { useTranslation } from '../hooks/useTranslation'
 
 export const SettingsScreen = () => {
   const navigate = useNavigate()
   const t = useTranslation()
   const { mode, language, backgroundMode, setMode, setLanguage, setBackgroundMode, signOut } = useApp()
+  const availableLanguages = useAvailableLanguages()
 
   const [selectedMode, setSelectedMode] = useState(mode)
   const [selectedLanguage, setSelectedLanguage] = useState(language)
@@ -77,7 +78,7 @@ export const SettingsScreen = () => {
         <section className='page-card settings-section'>
           <h2 className='choice-card__title'>{t('language')}</h2>
           <div className='settings-grid' style={{ marginTop: '12px' }}>
-            {APP_LANGUAGES.map((item) => (
+            {availableLanguages.map((item) => (
               <button
                 key={item.code}
                 type='button'

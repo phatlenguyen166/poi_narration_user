@@ -11,7 +11,7 @@ import { getLocalized } from '../utils/localization'
 export const PoiDetailScreen = () => {
   const navigate = useNavigate()
   const { poiId } = useParams<{ poiId: string }>()
-  const { language } = useApp()
+  const { language, currentUser } = useApp()
   const t = useTranslation()
   const { data: pois = [] } = usePoisQuery()
   const { state, play, pause, stop, seek, formatTime } = useAudioPlayer()
@@ -36,10 +36,13 @@ export const PoiDetailScreen = () => {
     await audioService.unlock()
     if (poi.stallId) {
       void createPlaybackLog({
+        tourist: currentUser,
         stallId: poi.stallId,
-        poiId: poi.id,
+        poi,
         language,
-        listenDurationSeconds: 0
+        listenDurationSeconds: 0,
+        triggerMode: 'MANUAL',
+        playbackStatus: 'STARTED'
       })
     }
     const playback = await audioService.playSources(getAudioSources(poi, language))
@@ -90,7 +93,7 @@ export const PoiDetailScreen = () => {
           </div>
           <div>
             <div className='detail-stats'>
-              <span className='pill'>{poi.category}</span>
+              <span className='pill'>{poi.stallName ?? 'Địa điểm'}</span>
               <span className='pill'>{Math.round(poi.radius)}m</span>
             </div>
             <h1 style={{ margin: '14px 0 6px', fontSize: '1.95rem', lineHeight: '1.05', fontWeight: 800 }}>
@@ -135,7 +138,7 @@ export const PoiDetailScreen = () => {
           </div>
           <div className='stat-card'>
             <div className='choice-card__copy'>{t('priority')}</div>
-            <div className='choice-card__title'>{poi.priority}/10</div>
+            <div className='choice-card__title'>{poi.priority}/5</div>
           </div>
           <div className='stat-card' data-testid='detail-coordinates'>
             <div className='choice-card__copy'>{t('coordinates')}</div>

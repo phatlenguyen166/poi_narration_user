@@ -7,7 +7,7 @@ import { preferences } from '../services/preferences'
 export const QrResolveScreen = () => {
   const navigate = useNavigate()
   const { isLoggedIn, setActiveTourId, setMode } = useApp()
-  const { targetType, targetId } = useParams<{ targetType: 'stall' | 'poi'; targetId: string }>()
+  const { targetType, targetId } = useParams<{ targetType: 'stall' | 'tour'; targetId: string }>()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -26,12 +26,7 @@ export const QrResolveScreen = () => {
       try {
         const result = await resolveQrTarget(targetType, targetId)
         setMode('explore')
-        setActiveTourId(result.targetType === 'STALL' ? `stall-${result.targetId}` : null)
-
-        if (result.targetType === 'POI') {
-          navigate(`/poi/${result.targetId}`, { replace: true })
-          return
-        }
+        setActiveTourId(result.targetType === 'STALL' ? `stall-${result.targetId}` : result.targetType === 'TOUR' ? String(result.targetId) : null)
 
         navigate('/home', { replace: true })
       } catch {

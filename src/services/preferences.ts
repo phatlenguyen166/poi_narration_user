@@ -1,4 +1,5 @@
 import { DEFAULT_LANGUAGE, DEFAULT_MODE, STORAGE_KEYS } from '../constants'
+import { isSupportedAppLanguage } from './languages'
 import type { AppLanguage, AppMode } from '../types'
 
 const get = (key: string): string | null => {
@@ -58,14 +59,7 @@ export const preferences = {
   },
   getLanguage(): AppLanguage {
     const value = get(STORAGE_KEYS.appLanguage)
-    if (
-      value === 'vi-VN' ||
-      value === 'en-US' ||
-      value === 'zh-CN' ||
-      value === 'ja-JP' ||
-      value === 'fr-FR' ||
-      value === 'ko-KR'
-    ) {
+    if (isSupportedAppLanguage(value)) {
       return value
     }
     return DEFAULT_LANGUAGE

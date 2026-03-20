@@ -78,7 +78,7 @@ select {
 
 .app-screen {
   min-height: 100vh;
-  padding: 20px 18px 28px;
+  padding: 22px 18px 32px;
 }
 
 .app-screen-auth {
@@ -142,7 +142,7 @@ select {
 .auth-form,
 .stack {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .field {
@@ -162,12 +162,14 @@ select {
 
 .field__input {
   width: 100%;
-  min-height: 52px;
+  min-height: 56px;
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--surface);
-  padding: 14px 16px;
+  padding: 15px 16px;
   color: var(--text);
+  font-size: 0.96rem;
+  line-height: 1.45;
   outline: none;
   transition:
     border-color 0.18s ease,
@@ -189,18 +191,22 @@ select {
   border: 0;
   background: transparent;
   color: var(--text-soft);
+  padding: 8px 10px;
+  border-radius: 12px;
 }
 
 .button {
   display: inline-flex;
-  min-height: 52px;
+  min-height: 56px;
   width: 100%;
   align-items: center;
   justify-content: center;
   border-radius: 18px;
   border: 1px solid transparent;
-  padding: 0 16px;
+  padding: 0 18px;
+  font-size: 0.95rem;
   font-weight: 800;
+  line-height: 1.2;
   transition:
     transform 0.18s ease,
     opacity 0.18s ease,
@@ -373,8 +379,8 @@ select {
 
 .icon-button {
   display: inline-flex;
-  min-height: 42px;
-  min-width: 42px;
+  min-height: 46px;
+  min-width: 46px;
   align-items: center;
   justify-content: center;
   border-radius: 14px;
@@ -433,7 +439,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--surface);
-  padding: 12px 14px;
+  padding: 14px 15px;
 }
 
 .poi-list {
@@ -451,7 +457,7 @@ select {
 .poi-card__body {
   display: flex;
   gap: 12px;
-  padding: 12px;
+  padding: 14px;
 }
 
 .poi-card__media {
@@ -508,12 +514,14 @@ select {
 .poi-card__actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .poi-card__actions .button {
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 14px;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
+  padding-inline: 14px;
 }
 
 .player-bar {
@@ -626,7 +634,7 @@ select {
   }
 
   .app-screen {
-    padding: 24px;
+    padding: 28px 24px 34px;
   }
 
   .home-map {

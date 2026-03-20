@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { APP_LANGUAGES, APP_MODES } from '../constants'
+import { APP_MODES } from '../constants'
 import { useApp } from '../context/useApp'
+import { useAvailableLanguages } from '../hooks/useAvailableLanguages'
 import { useTranslation } from '../hooks/useTranslation'
 import type { AppLanguage, AppMode } from '../types'
 
@@ -9,6 +10,7 @@ export const WelcomeScreen = () => {
   const navigate = useNavigate()
   const t = useTranslation()
   const { mode, language, setMode, setLanguage, completeFirstLaunch } = useApp()
+  const availableLanguages = useAvailableLanguages()
 
   const [step, setStep] = useState(0)
   const [selectedMode, setSelectedMode] = useState<AppMode | null>(mode)
@@ -94,7 +96,7 @@ export const WelcomeScreen = () => {
           </div>
         ) : (
           <div className='choice-grid' data-testid='welcome-language-step'>
-            {APP_LANGUAGES.map((item) => {
+            {availableLanguages.map((item) => {
               const active = selectedLanguage === item.code
               return (
                 <button

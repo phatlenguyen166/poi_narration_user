@@ -2,6 +2,12 @@ export type AppMode = 'travel' | 'explore'
 
 export type AppLanguage = 'vi-VN' | 'en-US' | 'zh-CN' | 'ja-JP' | 'fr-FR' | 'ko-KR'
 
+export interface AppLanguageOption {
+  code: AppLanguage
+  displayName: string
+  flag: string
+}
+
 export interface UserProfile {
   id: string
   name: string
@@ -14,6 +20,7 @@ export interface UserProfile {
 }
 
 export interface PoiContent {
+  stallAudioGuideId?: string
   languageCode: string
   languageName: string
   scriptText: string

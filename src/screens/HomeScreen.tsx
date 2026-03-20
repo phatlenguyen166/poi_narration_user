@@ -17,7 +17,7 @@ export const HomeScreen = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const t = useTranslation()
-  const { language, mode, activeTourId, backgroundMode } = useApp()
+  const { language, mode, activeTourId, backgroundMode, currentUser } = useApp()
   const { data: pois = [] } = usePoisQuery()
   const { data: tours = [], isLoading: isToursLoading } = useToursQuery()
   const { state: audioState, pause, play, stop, seek, formatTime } = useAudioPlayer()
@@ -53,11 +53,12 @@ export const HomeScreen = () => {
     if (!query) {
       return scopedPois
     }
-    return scopedPois.filter((poi) => {
-      const name = getLocalized(poi.name, language).toLowerCase()
-      const description = getLocalized(poi.description, language).toLowerCase()
-      return name.includes(query) || description.includes(query) || poi.category.toLowerCase().includes(query)
-    })
+      return scopedPois.filter((poi) => {
+        const name = getLocalized(poi.name, language).toLowerCase()
+        const description = getLocalized(poi.description, language).toLowerCase()
+        const stallName = poi.stallName?.toLowerCase() ?? ''
+        return name.includes(query) || description.includes(query) || stallName.includes(query)
+      })
   }, [language, scopedPois, searchText])
 
   const searchResults = useMemo(() => filteredPois.slice(0, 4), [filteredPois])
@@ -146,11 +147,12 @@ export const HomeScreen = () => {
           const movementTarget = nearby ?? scopedPois[0] ?? null
           if (movementTarget?.stallId) {
             void createMovementLog({
+              tourist: currentUser,
               stallId: movementTarget.stallId,
-              poiId: nearby?.id,
               position: nextLocation,
-              accuracyMeters: Math.round(position.coords.accuracy || 0),
-              source: 'travel_watch'
+              source: 'travel_watch',
+              distanceToStallMeters: nearby ? Math.round(getDistanceToNearestPoi(nextLocation, [nearby])) : null,
+              eventType: nearby ? 'ENTER' : 'DWELL'
             })
           }
           if (!nearby) {
@@ -167,10 +169,13 @@ export const HomeScreen = () => {
           lastTriggerTimeRef.current = Date.now()
           if (nearby.stallId) {
             void createPlaybackLog({
+              tourist: currentUser,
               stallId: nearby.stallId,
-              poiId: nearby.id,
+              poi: nearby,
               language,
-              listenDurationSeconds: 0
+              listenDurationSeconds: 0,
+              triggerMode: qrStallId ? 'QR' : 'GEOFENCE',
+              playbackStatus: 'STARTED'
             })
           }
           const playback = await audioService.playSources(getAudioSources(nearby, language))
@@ -206,16 +211,19 @@ export const HomeScreen = () => {
       document.removeEventListener('visibilitychange', syncTrackingWithVisibility)
       clearWatch()
     }
-  }, [activeTour, backgroundMode, language, mode, scopedPois, t, trackingMode])
+  }, [activeTour, backgroundMode, currentUser, language, mode, qrStallId, scopedPois, t, trackingMode])
 
   const playPoi = async (poi: Poi): Promise<void> => {
     await audioService.unlock()
     if (poi.stallId) {
       void createPlaybackLog({
+        tourist: currentUser,
         stallId: poi.stallId,
-        poiId: poi.id,
+        poi,
         language,
-        listenDurationSeconds: 0
+        listenDurationSeconds: 0,
+        triggerMode: mode === 'explore' ? 'MANUAL' : 'GEOFENCE',
+        playbackStatus: 'STARTED'
       })
     }
     const playback = await audioService.playSources(getAudioSources(poi, language))
@@ -289,7 +297,7 @@ export const HomeScreen = () => {
                 >
                   <div className='choice-card__title'>{getLocalized(poi.name, language)}</div>
                   <div className='choice-card__copy'>
-                    {poi.category} • {Math.round(poi.radius)}m
+                    {poi.stallName ?? t('poi_category')} • {Math.round(poi.radius)}m
                   </div>
                 </button>
               ))}
@@ -350,7 +358,7 @@ export const HomeScreen = () => {
                       <span className='meta-tag'>★ {poi.priority}</span>
                     </div>
                     <div className='poi-meta'>
-                      <span className='meta-tag'>{poi.category}</span>
+                      <span className='meta-tag'>{poi.stallName ?? 'Địa điểm'}</span>
                       <span className='meta-tag'>{Math.round(poi.radius)}m</span>
                     </div>
                     <p className='poi-card__copy'>{getLocalized(poi.description, language)}</p>

@@ -30,19 +30,6 @@ export const DEFAULT_CENTER = {
 export const DEFAULT_MODE: AppMode = 'explore'
 export const DEFAULT_LANGUAGE: AppLanguage = 'en-US'
 
-export const APP_LANGUAGES: Array<{
-  code: AppLanguage
-  displayName: string
-  flag: string
-}> = [
-  { code: 'vi-VN', displayName: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'en-US', displayName: 'English', flag: '🇺🇸' },
-  { code: 'zh-CN', displayName: '中文', flag: '🇨🇳' },
-  { code: 'ja-JP', displayName: '日本語', flag: '🇯🇵' },
-  { code: 'fr-FR', displayName: 'Français', flag: '🇫🇷' },
-  { code: 'ko-KR', displayName: '한국어', flag: '🇰🇷' }
-]
-
 export const APP_MODES: Array<{
   mode: AppMode
   icon: string
