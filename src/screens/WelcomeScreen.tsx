@@ -59,80 +59,82 @@ export const WelcomeScreen = () => {
           <p className='auth-hero__copy'>{step === 0 ? t('select_mode_desc') : t('select_language_desc')}</p>
         </div>
 
-        {step === 0 ? (
-          <div className='choice-grid' data-testid='welcome-mode-step'>
-            {APP_MODES.map((item) => {
-              const active = selectedMode === item.mode
-              return (
-                <button
-                  key={item.mode}
-                  type='button'
-                  onClick={() => setSelectedMode(item.mode)}
-                  data-testid={`mode-${item.mode}`}
-                  className={`choice-card ${active ? 'choice-card--selected' : ''}`}
-                >
-                  <div className='choice-card__row'>
-                    <span className='choice-card__icon'>{item.icon}</span>
-                    <span className='flex-1'>
-                      <span className='choice-card__title'>
-                        {item.mode === 'travel' ? t('travel_mode') : t('explore_mode')}
+        <div className='auth-card'>
+          {step === 0 ? (
+            <div className='choice-grid' data-testid='welcome-mode-step'>
+              {APP_MODES.map((item) => {
+                const active = selectedMode === item.mode
+                return (
+                  <button
+                    key={item.mode}
+                    type='button'
+                    onClick={() => setSelectedMode(item.mode)}
+                    data-testid={`mode-${item.mode}`}
+                    className={`choice-card ${active ? 'choice-card--selected' : ''}`}
+                  >
+                    <div className='choice-card__row'>
+                      <span className='choice-card__icon'>{item.icon}</span>
+                      <span className='flex-1'>
+                        <span className='choice-card__title'>
+                          {item.mode === 'travel' ? t('travel_mode') : t('explore_mode')}
+                        </span>
+                        <span className='choice-card__copy'>
+                          {item.mode === 'travel' ? t('travel_mode_desc') : t('explore_mode_desc')}
+                        </span>
                       </span>
-                      <span className='choice-card__copy'>
-                        {item.mode === 'travel' ? t('travel_mode_desc') : t('explore_mode_desc')}
-                      </span>
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
-            <button
-              type='button'
-              onClick={nextStep}
-              data-testid='welcome-next'
-              className='button button-primary'
-            >
-              {t('next')}
-            </button>
-          </div>
-        ) : (
-          <div className='choice-grid' data-testid='welcome-language-step'>
-            {availableLanguages.map((item) => {
-              const active = selectedLanguage === item.code
-              return (
-                <button
-                  key={item.code}
-                  type='button'
-                  onClick={() => setSelectedLanguage(item.code)}
-                  data-testid={`language-${item.code}`}
-                  className={`choice-card ${active ? 'choice-card--selected' : ''}`}
-                >
-                  <div className='choice-card__row'>
-                    <span className='choice-card__icon'>{item.flag}</span>
-                    <span className='choice-card__title'>{item.displayName}</span>
-                  </div>
-                </button>
-              )
-            })}
-
-            <div className='grid grid-cols-2 gap-3 pt-2'>
+                    </div>
+                  </button>
+                )
+              })}
               <button
                 type='button'
-                onClick={() => setStep(0)}
-                className='button button-secondary'
-              >
-                {t('go_back')}
-              </button>
-              <button
-                type='button'
-                onClick={finish}
-                data-testid='welcome-finish'
+                onClick={nextStep}
+                data-testid='welcome-next'
                 className='button button-primary'
               >
-                {t('get_started')}
+                {t('next')}
               </button>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className='choice-grid' data-testid='welcome-language-step'>
+              {availableLanguages.map((item) => {
+                const active = selectedLanguage === item.code
+                return (
+                  <button
+                    key={item.code}
+                    type='button'
+                    onClick={() => setSelectedLanguage(item.code)}
+                    data-testid={`language-${item.code}`}
+                    className={`choice-card ${active ? 'choice-card--selected' : ''}`}
+                  >
+                    <div className='choice-card__row'>
+                      <span className='choice-card__icon'>{item.flag}</span>
+                      <span className='choice-card__title'>{item.displayName}</span>
+                    </div>
+                  </button>
+                )
+              })}
+
+              <div className='grid grid-cols-2 gap-3 pt-2'>
+                <button
+                  type='button'
+                  onClick={() => setStep(0)}
+                  className='button button-secondary'
+                >
+                  {t('go_back')}
+                </button>
+                <button
+                  type='button'
+                  onClick={finish}
+                  data-testid='welcome-finish'
+                  className='button button-primary'
+                >
+                  {t('get_started')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {errorMessage && (
           <p className='notice notice-error' data-testid='welcome-error'>

@@ -1,6 +1,6 @@
 export type AppMode = 'travel' | 'explore'
 
-export type AppLanguage = 'vi-VN' | 'en-US' | 'zh-CN' | 'ja-JP' | 'fr-FR' | 'ko-KR'
+export type AppLanguage = 'vi-VN' | 'en-US' | 'zh-CN' | 'fr-FR' | 'ko-KR'
 
 export interface AppLanguageOption {
   code: AppLanguage

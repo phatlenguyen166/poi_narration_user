@@ -38,14 +38,16 @@ export const TourSelectionScreen = () => {
 
   return (
     <div className='app-screen'>
-      <div className='screen-header'>
-        <span className='screen-header__eyebrow'>Travel setup</span>
-        <h1 className='screen-header__title' data-testid='tour-selection-title'>
-          {t('select_tour')}
-        </h1>
-        <p className='screen-header__copy'>{t('select_tour_desc')}</p>
-      </div>
+      <div className='app-screen__narrow'>
+        <div className='screen-header'>
+          <span className='screen-header__eyebrow'>Travel setup</span>
+          <h1 className='screen-header__title' data-testid='tour-selection-title'>
+            {t('select_tour')}
+          </h1>
+          <p className='screen-header__copy'>{t('select_tour_desc')}</p>
+        </div>
 
+        <div className='page-card page-card--padded'>
         <input
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
@@ -103,6 +105,8 @@ export const TourSelectionScreen = () => {
         >
           {t('start_tour')}
         </button>
+        </div>
+      </div>
     </div>
   )
 }

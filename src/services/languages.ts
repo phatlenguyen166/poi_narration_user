@@ -11,7 +11,6 @@ const SUPPORTED_LANGUAGE_META: Record<AppLanguage, AppLanguageOption> = {
   'vi-VN': { code: 'vi-VN', displayName: 'Tiếng Việt', flag: '🇻🇳' },
   'en-US': { code: 'en-US', displayName: 'English', flag: '🇺🇸' },
   'zh-CN': { code: 'zh-CN', displayName: '中文', flag: '🇨🇳' },
-  'ja-JP': { code: 'ja-JP', displayName: '日本語', flag: '🇯🇵' },
   'fr-FR': { code: 'fr-FR', displayName: 'Français', flag: '🇫🇷' },
   'ko-KR': { code: 'ko-KR', displayName: '한국어', flag: '🇰🇷' }
 }
@@ -20,7 +19,6 @@ const BACKEND_LANGUAGE_MAP: Record<string, AppLanguage> = {
   vi: 'vi-VN',
   en: 'en-US',
   zh: 'zh-CN',
-  ja: 'ja-JP',
   fr: 'fr-FR',
   ko: 'ko-KR'
 }
@@ -29,7 +27,6 @@ export const FALLBACK_APP_LANGUAGES: AppLanguageOption[] = [
   SUPPORTED_LANGUAGE_META['vi-VN'],
   SUPPORTED_LANGUAGE_META['en-US'],
   SUPPORTED_LANGUAGE_META['zh-CN'],
-  SUPPORTED_LANGUAGE_META['ja-JP'],
   SUPPORTED_LANGUAGE_META['fr-FR'],
   SUPPORTED_LANGUAGE_META['ko-KR']
 ]

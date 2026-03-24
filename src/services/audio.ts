@@ -65,6 +65,34 @@ class AudioService {
     }
   }
 
+  async setSource(source: string, autoplay = false): Promise<boolean> {
+    const loaded = await this.loadSource(source)
+    if (!loaded) {
+      return false
+    }
+
+    this.audio.currentTime = 0
+    this.state = {
+      ...this.state,
+      currentSrc: source,
+      currentTime: 0,
+      duration: Number.isFinite(this.audio.duration) ? this.audio.duration : this.state.duration
+    }
+    this.emit()
+
+    if (!autoplay) {
+      this.audio.pause()
+      return true
+    }
+
+    try {
+      await this.audio.play()
+      return true
+    } catch {
+      return false
+    }
+  }
+
   pause(): void {
     this.audio.pause()
   }

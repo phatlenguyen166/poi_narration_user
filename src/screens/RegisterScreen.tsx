@@ -73,91 +73,93 @@ export const RegisterScreen = () => {
           <p className='auth-hero__copy'>{t('register_subtitle')}</p>
         </div>
 
-        <div className='auth-form'>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            aria-label={t('full_name')}
-            data-testid='register-name'
-            className='field__input'
-          />
+        <div className='auth-card'>
+          <div className='auth-form'>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              aria-label={t('full_name')}
+              data-testid='register-name'
+              className='field__input'
+            />
 
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            type='email'
-            aria-label={t('email')}
-            data-testid='register-email'
-            className='field__input'
-          />
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type='email'
+              aria-label={t('email')}
+              data-testid='register-email'
+              className='field__input'
+            />
 
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            type='password'
-            aria-label={t('password')}
-            data-testid='register-password'
-            className='field__input'
-          />
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type='password'
+              aria-label={t('password')}
+              data-testid='register-password'
+              className='field__input'
+            />
 
-          <input
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            type='password'
-            aria-label={t('confirm_password')}
-            data-testid='register-confirm-password'
-            className='field__input'
-          />
+            <input
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              type='password'
+              aria-label={t('confirm_password')}
+              data-testid='register-confirm-password'
+              className='field__input'
+            />
 
-          <input
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            aria-label={t('phone')}
-            className='field__input'
-          />
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              aria-label={t('phone')}
+              className='field__input'
+            />
 
-          <input
-            value={dateOfBirth}
-            onChange={(event) => setDateOfBirth(event.target.value)}
-            type='date'
-            aria-label={t('date_of_birth')}
-            className='field__input'
-          />
+            <input
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+              type='date'
+              aria-label={t('date_of_birth')}
+              className='field__input'
+            />
 
-          <select
-            value={gender}
-            onChange={(event) => setGender(event.target.value)}
-            aria-label={t('gender')}
-            className='field__input'
-          >
-            <option value=''>{`${t('gender')} (${t('optional')})`}</option>
-            <option value='male'>{t('male')}</option>
-            <option value='female'>{t('female')}</option>
-            <option value='other'>{t('other_gender')}</option>
-          </select>
+            <select
+              value={gender}
+              onChange={(event) => setGender(event.target.value)}
+              aria-label={t('gender')}
+              className='field__input'
+            >
+              <option value=''>{`${t('gender')} (${t('optional')})`}</option>
+              <option value='male'>{t('male')}</option>
+              <option value='female'>{t('female')}</option>
+              <option value='other'>{t('other_gender')}</option>
+            </select>
 
-          {errorMessage && (
-            <div className='notice notice-error' data-testid='register-error'>
-              {errorMessage}
-            </div>
-          )}
+            {errorMessage && (
+              <div className='notice notice-error' data-testid='register-error'>
+                {errorMessage}
+              </div>
+            )}
 
-          <button
-            type='button'
-            onClick={submit}
-            disabled={isSubmitting}
-            data-testid='register-submit'
-            className='button button-primary'
-          >
-            {isSubmitting ? t('signing_in') : t('register_btn')}
-          </button>
+            <button
+              type='button'
+              onClick={submit}
+              disabled={isSubmitting}
+              data-testid='register-submit'
+              className='button button-primary'
+            >
+              {isSubmitting ? t('signing_in') : t('register_btn')}
+            </button>
 
-          <p className='auth-form__footer'>
-            {t('already_have_account')}{' '}
-            <Link to='/login' className='inline-link'>
-              {t('sign_in')}
-            </Link>
-          </p>
+            <p className='auth-form__footer'>
+              {t('already_have_account')}{' '}
+              <Link to='/login' className='inline-link'>
+                {t('sign_in')}
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -54,27 +54,40 @@ export const SettingsScreen = () => {
 
   return (
     <div className='app-screen'>
-      <div className='screen-header'>
-        <span className='screen-header__eyebrow'>Preferences</span>
-        <div className='topbar__row'>
-          <h1 className='screen-header__title' data-testid='settings-title'>
-            {t('settings_title')}
-          </h1>
-          <button
-            type='button'
-            onClick={() => {
-              signOut()
-              navigate('/login', { replace: true })
-            }}
-            data-testid='settings-signout'
-            className='icon-button'
-          >
-            {t('sign_out')}
-          </button>
+      <div className='app-screen__narrow'>
+        <div className='screen-header'>
+          <span className='screen-header__eyebrow'>Preferences</span>
+          <div className='topbar__row'>
+            <div className='topbar__cluster topbar__cluster--left'>
+              <button
+                type='button'
+                onClick={() => navigate(-1)}
+                className='icon-button'
+                aria-label={t('go_back')}
+                title={t('go_back')}
+              >
+                ←
+              </button>
+              <h1 className='screen-header__title' data-testid='settings-title'>
+                {t('settings_title')}
+              </h1>
+            </div>
+            <button
+              type='button'
+              onClick={() => {
+                signOut()
+                navigate('/login', { replace: true })
+              }}
+              data-testid='settings-signout'
+              className='button button-secondary'
+              style={{ width: 'auto', minHeight: '46px', paddingInline: '18px' }}
+            >
+              {t('sign_out')}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className='settings-list'>
+        <div className='settings-list'>
         <section className='page-card settings-section'>
           <h2 className='choice-card__title'>{t('language')}</h2>
           <div className='settings-grid' style={{ marginTop: '12px' }}>
@@ -168,6 +181,7 @@ export const SettingsScreen = () => {
         >
           {t('save_settings')}
         </button>
+        </div>
       </div>
     </div>
   )

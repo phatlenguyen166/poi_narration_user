@@ -63,80 +63,82 @@ export const LoginScreen = () => {
           <p className='auth-hero__copy'>{t('login_subtitle')}</p>
         </div>
 
-        <div className='auth-form'>
-          <label className='field'>
-            <span className='field__label'>{t('email')}</span>
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type='email'
-              autoComplete='email'
-              aria-label={t('email')}
-              data-testid='login-email'
-              className='field__input'
-            />
-          </label>
-
-          <label className='field'>
-            <span className='field__label'>{t('password')}</span>
-            <div className='field__password'>
+        <div className='auth-card'>
+          <div className='auth-form'>
+            <label className='field'>
+              <span className='field__label'>{t('email')}</span>
               <input
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                type={showPassword ? 'text' : 'password'}
-                autoComplete='current-password'
-                aria-label={t('password')}
-                data-testid='login-password'
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                type='email'
+                autoComplete='email'
+                aria-label={t('email')}
+                data-testid='login-email'
                 className='field__input'
               />
-              <button
-                type='button'
-                onClick={() => setShowPassword((value) => !value)}
-                className='field__toggle'
-              >
-                {showPassword ? t('hide_password') : t('show_password')}
-              </button>
-            </div>
-          </label>
+            </label>
 
-          {errorMessage && (
-            <div className='notice notice-error' data-testid='login-error'>
-              {errorMessage}
-            </div>
-          )}
+            <label className='field'>
+              <span className='field__label'>{t('password')}</span>
+              <div className='field__password'>
+                <input
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete='current-password'
+                  aria-label={t('password')}
+                  data-testid='login-password'
+                  className='field__input'
+                />
+                <button
+                  type='button'
+                  onClick={() => setShowPassword((value) => !value)}
+                  className='field__toggle'
+                >
+                  {showPassword ? t('hide_password') : t('show_password')}
+                </button>
+              </div>
+            </label>
 
-          <button
-            type='button'
-            onClick={signIn}
-            disabled={isLoading}
-            data-testid='login-submit'
-            className='button button-primary'
-          >
-            {isLoading ? t('signing_in') : t('sign_in')}
-          </button>
+            {errorMessage && (
+              <div className='notice notice-error' data-testid='login-error'>
+                {errorMessage}
+              </div>
+            )}
 
-          <button
-            type='button'
-            onClick={() => {
-              void signInGoogle()
-            }}
-            disabled={isLoading}
-            data-testid='login-google'
-            className='button button-secondary'
-          >
-            {t('sign_in_with_google')}
-          </button>
+            <button
+              type='button'
+              onClick={signIn}
+              disabled={isLoading}
+              data-testid='login-submit'
+              className='button button-primary'
+            >
+              {isLoading ? t('signing_in') : t('sign_in')}
+            </button>
 
-          <p className='auth-form__footer'>
-            {t('no_account_yet')}{' '}
-            <Link to='/register' className='inline-link'>
-              {t('create_account')}
-            </Link>
-          </p>
+            <button
+              type='button'
+              onClick={() => {
+                void signInGoogle()
+              }}
+              disabled={isLoading}
+              data-testid='login-google'
+              className='button button-secondary'
+            >
+              {t('sign_in_with_google')}
+            </button>
 
-          <p className='helper-copy'>
-            Tai khoan test: {DEFAULT_TEST_EMAIL} / {DEFAULT_TEST_PASSWORD}
-          </p>
+            <p className='auth-form__footer'>
+              {t('no_account_yet')}{' '}
+              <Link to='/register' className='inline-link'>
+                {t('create_account')}
+              </Link>
+            </p>
+
+            <p className='helper-copy'>
+              Tai khoan test: {DEFAULT_TEST_EMAIL} / {DEFAULT_TEST_PASSWORD}
+            </p>
+          </div>
         </div>
       </div>
     </div>

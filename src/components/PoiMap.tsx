@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
 import { APP_CONSTANTS, DEFAULT_CENTER } from '../constants'
 import type { GeoPoint, Poi } from '../types'
+import { calculateDistanceMeters } from '../utils/distance'
 
 interface PoiMapProps {
   pois: Poi[]
@@ -18,6 +19,18 @@ const MapViewController = ({ center }: { center: GeoPoint }) => {
   }, [center.latitude, center.longitude, map])
 
   return null
+}
+
+const formatDistance = (distanceMeters: number): string => {
+  if (!Number.isFinite(distanceMeters) || distanceMeters < 0) {
+    return 'Chua co vi tri'
+  }
+
+  if (distanceMeters < 1000) {
+    return `${Math.round(distanceMeters)}m`
+  }
+
+  return `${(distanceMeters / 1000).toFixed(distanceMeters >= 10000 ? 0 : 1)}km`
 }
 
 export const PoiMap = ({ pois, userLocation, focusPoint, onPoiSelect }: PoiMapProps) => {
@@ -66,7 +79,16 @@ export const PoiMap = ({ pois, userLocation, focusPoint, onPoiSelect }: PoiMapPr
           }}
         >
           <Popup>
-            <strong>{poi.id.toUpperCase()}</strong>
+            <strong>
+              {userLocation
+                ? formatDistance(
+                    calculateDistanceMeters(userLocation, {
+                      latitude: poi.latitude,
+                      longitude: poi.longitude
+                    })
+                  )
+                : 'Chua co vi tri'}
+            </strong>
           </Popup>
         </CircleMarker>
       ))}

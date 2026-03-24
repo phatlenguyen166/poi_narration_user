@@ -59,7 +59,6 @@ const en = {
   vietnamese: 'Tiếng Việt',
   english: 'English',
   chinese: '中文',
-  japanese: '日本語',
   french: 'Français',
   korean: '한국어',
   select_tour: 'Select Tour',
@@ -248,18 +247,6 @@ const zh: Partial<TranslationPack> = {
   explore_mode: '探索模式'
 }
 
-const ja: Partial<TranslationPack> = {
-  app_title: 'POIガイド',
-  settings: '設定',
-  login_title: 'おかえりなさい',
-  sign_in: 'サインイン',
-  register_title: 'アカウント作成',
-  select_tour: 'ツアー選択',
-  start_tour: '開始',
-  travel_mode: '旅行モード',
-  explore_mode: '探索モード'
-}
-
 const fr: Partial<TranslationPack> = {
   app_title: 'POI Narration',
   settings: 'Paramètres',
@@ -288,7 +275,6 @@ const translations: Record<AppLanguage, Partial<TranslationPack>> = {
   'en-US': en,
   'vi-VN': vi,
   'zh-CN': zh,
-  'ja-JP': ja,
   'fr-FR': fr,
   'ko-KR': ko
 }

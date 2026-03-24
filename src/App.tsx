@@ -3,7 +3,6 @@ import { MobileFrame } from './components/MobileFrame'
 import { useApp } from './context/useApp'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoginScreen } from './screens/LoginScreen'
-import { PoiDetailScreen } from './screens/PoiDetailScreen'
 import { QrResolveScreen } from './screens/QrResolveScreen'
 import { RegisterScreen } from './screens/RegisterScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
@@ -81,7 +80,6 @@ function App() {
 
           <Route element={<RequireAppReady />}>
             <Route path='/home' element={<HomeScreen />} />
-            <Route path='/poi/:poiId' element={<PoiDetailScreen />} />
             <Route path='/settings' element={<SettingsScreen />} />
           </Route>
         </Route>

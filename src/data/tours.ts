@@ -4,14 +4,12 @@ const tr = (
   vi: string,
   en: string,
   zh: string = en,
-  ja: string = en,
   fr: string = en,
   ko: string = en
 ): Record<AppLanguage, string> => ({
   'vi-VN': vi,
   'en-US': en,
   'zh-CN': zh,
-  'ja-JP': ja,
   'fr-FR': fr,
   'ko-KR': ko
 })

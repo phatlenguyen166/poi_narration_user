@@ -13,7 +13,7 @@ interface PublicPoiResponse {
   id: number
   stallId: number
   stallName: string
-  stallDescription: string | null
+  address: string
   name: string
   latitude: number
   longitude: number
@@ -34,7 +34,6 @@ const sameText = (value: string): Record<AppLanguage, string> => ({
   'vi-VN': value,
   'en-US': value,
   'zh-CN': value,
-  'ja-JP': value,
   'fr-FR': value,
   'ko-KR': value
 })
@@ -45,7 +44,6 @@ const mapBackendLanguage = (code: string): AppLanguage | null => {
   if (normalized === 'en' || normalized === 'en-us') return 'en-US'
   if (normalized === 'fr' || normalized === 'fr-fr') return 'fr-FR'
   if (normalized === 'zh' || normalized === 'zh-cn') return 'zh-CN'
-  if (normalized === 'ja' || normalized === 'ja-jp') return 'ja-JP'
   if (normalized === 'ko' || normalized === 'ko-kr') return 'ko-KR'
   return null
 }
@@ -58,8 +56,6 @@ const toBackendLanguageCode = (language: AppLanguage): string => {
       return 'fr'
     case 'zh-CN':
       return 'zh'
-    case 'ja-JP':
-      return 'ja'
     case 'ko-KR':
       return 'ko'
     default:
@@ -87,7 +83,6 @@ const localizeDescription = (contents: PoiContent[], fallback: string): Record<A
   }
 
   result['zh-CN'] = result['zh-CN'] || result['en-US']
-  result['ja-JP'] = result['ja-JP'] || result['en-US']
   result['ko-KR'] = result['ko-KR'] || result['en-US']
 
   return result
@@ -101,9 +96,9 @@ const mapPoi = (item: PublicPoiResponse): Poi => {
     id: String(item.id),
     stallId: String(item.stallId),
     stallName: item.stallName,
-    stallDescription: sameText(item.stallDescription || item.name),
+    stallDescription: sameText(item.address || item.name),
     name: sameText(item.name),
-    description: localizeDescription(contents, item.stallDescription || item.name),
+    description: localizeDescription(contents, item.address || item.name),
     latitude: item.latitude,
     longitude: item.longitude,
     radius: item.radiusMeters,
@@ -134,6 +129,9 @@ const findGuideForLanguage = (poi: Poi, language: AppLanguage): PoiContent | nul
 
   return (poi.contents || []).find((content) => !!content.audioUrl) ?? null
 }
+
+export const getPreferredAudioSource = (poi: Poi, language: AppLanguage): string | null =>
+  findGuideForLanguage(poi, language)?.audioUrl ?? null
 
 export const fetchPois = async (): Promise<Poi[]> => {
   const { data } = await api.get<PublicPoiResponse[]>('/api/v1/public/pois')

@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { usePoisQuery, useToursQuery } from '../hooks/useRepository'
 import { useTranslation } from '../hooks/useTranslation'
 import { audioService } from '../services/audio'
-import { createMovementLog, createPlaybackLog, filterPoisByActiveTour, getAudioSources, poiHasAudioSource } from '../services/repository'
+import {
+  createMovementLog,
+  createPlaybackLog,
+  filterPoisByActiveTour,
+  getAudioSources,
+  getPreferredAudioSource,
+  poiHasAudioSource
+} from '../services/repository'
 import type { GeoPoint, Poi } from '../types'
-import { findNearbyPoi, getDistanceToNearestPoi, shouldTriggerCooldown } from '../utils/distance'
+import { calculateDistanceMeters, findNearbyPoi, getDistanceToNearestPoi, shouldTriggerCooldown } from '../utils/distance'
 import { getLocalized, modeIcon } from '../utils/localization'
 import { PoiMap } from '../components/PoiMap'
 
@@ -28,6 +35,9 @@ export const HomeScreen = () => {
   const [locationError, setLocationError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [trackingMode, setTrackingMode] = useState<'high' | 'normal' | 'low'>('normal')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isDetailOpen, setIsDetailOpen] = useState(true)
+  const [isFollowingUserLocation, setIsFollowingUserLocation] = useState(false)
 
   const watchIdRef = useRef<number | null>(null)
   const lastTriggerPoiIdRef = useRef<string | null>(null)
@@ -53,24 +63,58 @@ export const HomeScreen = () => {
     if (!query) {
       return scopedPois
     }
-      return scopedPois.filter((poi) => {
-        const name = getLocalized(poi.name, language).toLowerCase()
-        const description = getLocalized(poi.description, language).toLowerCase()
-        const stallName = poi.stallName?.toLowerCase() ?? ''
-        return name.includes(query) || description.includes(query) || stallName.includes(query)
-      })
+    return scopedPois.filter((poi) => {
+      const name = getLocalized(poi.name, language).toLowerCase()
+      const description = getLocalized(poi.description, language).toLowerCase()
+      const stallName = poi.stallName?.toLowerCase() ?? ''
+      return name.includes(query) || description.includes(query) || stallName.includes(query)
+    })
   }, [language, scopedPois, searchText])
 
-  const searchResults = useMemo(() => filteredPois.slice(0, 4), [filteredPois])
+  const sortedFilteredPois = useMemo(() => {
+    if (!userLocation) {
+      return filteredPois
+    }
 
-  const selectedPoi = useMemo(() => scopedPois.find((poi) => poi.id === selectedPoiId) ?? null, [scopedPois, selectedPoiId])
+    return [...filteredPois].sort((left, right) => {
+      const leftDistance = calculateDistanceMeters(userLocation, {
+        latitude: left.latitude,
+        longitude: left.longitude
+      })
+      const rightDistance = calculateDistanceMeters(userLocation, {
+        latitude: right.latitude,
+        longitude: right.longitude
+      })
+      return leftDistance - rightDistance
+    })
+  }, [filteredPois, userLocation])
+
+  const searchResults = useMemo(() => sortedFilteredPois.slice(0, 4), [sortedFilteredPois])
+
+  const selectedPoi = useMemo(
+    () => scopedPois.find((poi) => poi.id === selectedPoiId) ?? null,
+    [scopedPois, selectedPoiId]
+  )
+
+  const formatDistanceLabel = (distanceMeters: number | null) => {
+    if (distanceMeters === null || !Number.isFinite(distanceMeters)) {
+      return null
+    }
+    if (distanceMeters < 1000) {
+      return `${Math.round(distanceMeters)}m nearest`
+    }
+    return `${(distanceMeters / 1000).toFixed(distanceMeters >= 10000 ? 0 : 1)}km nearest`
+  }
 
   const focusPoint = useMemo(() => {
+    if (isFollowingUserLocation && userLocation) {
+      return userLocation
+    }
     if (selectedPoi) {
       return { latitude: selectedPoi.latitude, longitude: selectedPoi.longitude }
     }
     return userLocation
-  }, [selectedPoi, userLocation])
+  }, [isFollowingUserLocation, selectedPoi, userLocation])
 
   const nearestDistance = useMemo(() => {
     if (!userLocation) {
@@ -100,6 +144,22 @@ export const HomeScreen = () => {
     return currentPoi ? getLocalized(currentPoi.name, language) : null
   }, [audioState.currentSrc, language, scopedPois])
 
+  const activePoi = useMemo(
+    () => {
+      if (!isDetailOpen) {
+        return null
+      }
+      return selectedPoi ?? scopedPois.find((poi) => poiHasAudioSource(poi, audioState.currentSrc)) ?? sortedFilteredPois[0] ?? null
+    },
+    [audioState.currentSrc, isDetailOpen, scopedPois, selectedPoi, sortedFilteredPois]
+  )
+
+  const handleSelectPoi = (poiId: string) => {
+    setSelectedPoiId(poiId)
+    setIsDetailOpen(true)
+    setIsFollowingUserLocation(false)
+  }
+
   useEffect(() => {
     if (mode === 'travel' && !isToursLoading && (!activeTourId || !activeTour)) {
       navigate('/tour-selection', { replace: true })
@@ -111,6 +171,7 @@ export const HomeScreen = () => {
       return
     }
     setSelectedPoiId(qrPoiId)
+    setIsDetailOpen(true)
   }, [qrPoiId])
 
   useEffect(() => {
@@ -118,7 +179,35 @@ export const HomeScreen = () => {
   }, [desiredTrackingMode])
 
   useEffect(() => {
-    if (!navigator.geolocation || mode !== 'travel' || !activeTour) {
+    if (!audioState.currentSrc) {
+      return
+    }
+
+    const currentPoi = scopedPois.find((poi) => poiHasAudioSource(poi, audioState.currentSrc))
+    if (!currentPoi) {
+      return
+    }
+
+    const nextSource = getPreferredAudioSource(currentPoi, language)
+    if (!nextSource || nextSource === audioState.currentSrc) {
+      return
+    }
+
+    void audioService.setSource(nextSource, audioState.isPlaying).then((loaded) => {
+      if (!loaded) {
+        setMessage(t('no_audio_for_language'))
+      } else {
+        setMessage(null)
+      }
+    })
+  }, [audioState.currentSrc, audioState.isPlaying, language, scopedPois, t])
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      return
+    }
+
+    if (mode === 'travel' && !activeTour) {
       return
     }
 
@@ -150,12 +239,13 @@ export const HomeScreen = () => {
               tourist: currentUser,
               stallId: movementTarget.stallId,
               position: nextLocation,
-              source: 'travel_watch',
+              source: mode === 'travel' ? 'travel_watch' : 'explore_view',
               distanceToStallMeters: nearby ? Math.round(getDistanceToNearestPoi(nextLocation, [nearby])) : null,
               eventType: nearby ? 'ENTER' : 'DWELL'
             })
           }
-          if (!nearby) {
+
+          if (mode !== 'travel' || !nearby) {
             return
           }
 
@@ -234,21 +324,86 @@ export const HomeScreen = () => {
     setMessage(null)
   }
 
-  const locationBanner =
-    mode === 'travel' ? (noGeolocationSupport ? t('location_unavailable') : locationError) : null
-  const backgroundTrackingNote =
-    mode === 'travel' && backgroundMode
-      ? t('background_tracking_desc')
-      : null
+  const locationBanner = mode === 'travel' ? (noGeolocationSupport ? t('location_unavailable') : locationError) : null
+  const backgroundTrackingNote = mode === 'travel' && backgroundMode ? t('background_tracking_desc') : null
+  const nearestDistanceLabel = formatDistanceLabel(nearestDistance)
 
   return (
-    <div data-testid='home-screen'>
+    <div className='home-screen-root' data-testid='home-screen'>
       <header className='topbar'>
         <div className='topbar__row'>
-          <span className='pill' data-testid='mode-pill'>
-            {modeIcon(mode)} {mode === 'travel' ? t('travel_mode') : t('explore_mode')}
-          </span>
-          <div className='topbar__row' style={{ gap: '8px' }}>
+          <div className='topbar__cluster topbar__cluster--left'>
+            <button
+              type='button'
+              onClick={() => setIsSidebarOpen((current) => !current)}
+              data-testid='toggle-poi-sidebar'
+              className='icon-button'
+              aria-label={isSidebarOpen ? 'Hide locations panel' : 'Show locations panel'}
+            >
+              {isSidebarOpen ? '☰' : '☷'}
+            </button>
+            <span className='pill' data-testid='mode-pill'>
+              {modeIcon(mode)} {mode === 'travel' ? t('travel_mode') : t('explore_mode')}
+            </span>
+            {activeTour && mode === 'travel' && (
+              <span className='pill' data-testid='active-tour-name'>
+                {activeTour.icon} {getLocalized(activeTour.name, language)}
+              </span>
+            )}
+            <div className='topbar__status'>
+              <span className='meta-tag' data-testid='poi-count'>
+                {scopedPois.length} {t('poi_in_tour')}
+              </span>
+              <span className='meta-tag' data-testid='tracking-mode'>
+                tracking {trackingMode}
+              </span>
+              {nearestDistanceLabel && <span className='meta-tag'>{nearestDistanceLabel}</span>}
+              <span className='meta-tag'>{audioState.isPlaying ? t('playing') : t('paused')}</span>
+              <span className='meta-tag'>{language}</span>
+            </div>
+          </div>
+
+          <div className='topbar__search'>
+            <input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              aria-label={t('search_poi')}
+              data-testid='poi-search'
+              className='field__input'
+              placeholder={t('search_poi')}
+            />
+            {searchText.trim() && (
+              <button
+                type='button'
+                onClick={() => setSearchText('')}
+                className='topbar__search-clear'
+                aria-label='Clear search'
+                title='Clear search'
+              >
+                ✕
+              </button>
+            )}
+            {searchText.trim() && (
+              <div className='search-results' data-testid='search-results'>
+                {searchResults.map((poi) => (
+                  <button
+                    key={poi.id}
+                    type='button'
+                    onClick={() => handleSelectPoi(poi.id)}
+                    className='search-result'
+                    data-testid={`search-result-${poi.id}`}
+                  >
+                    <div className='choice-card__title'>{getLocalized(poi.name, language)}</div>
+                    <div className='choice-card__copy'>
+                      {poi.stallName ?? t('poi_category')} • {Math.round(poi.radius)}m
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className='topbar__cluster topbar__cluster--right'>
             {mode === 'travel' && (
               <button
                 type='button'
@@ -271,162 +426,202 @@ export const HomeScreen = () => {
             </button>
           </div>
         </div>
-
-        <div className='search-panel' style={{ marginTop: '12px' }}>
-          {activeTour && mode === 'travel' && (
-            <div className='pill' data-testid='active-tour-name'>
-              {activeTour.icon} {getLocalized(activeTour.name, language)}
-            </div>
-          )}
-          <input
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-            aria-label={t('search_poi')}
-            data-testid='poi-search'
-            className='field__input'
-          />
-          {searchText.trim() && (
-            <div className='search-results' data-testid='search-results'>
-              {searchResults.map((poi) => (
-                <button
-                  key={poi.id}
-                  type='button'
-                  onClick={() => setSelectedPoiId(poi.id)}
-                  className='search-result'
-                  data-testid={`search-result-${poi.id}`}
-                >
-                  <div className='choice-card__title'>{getLocalized(poi.name, language)}</div>
-                  <div className='choice-card__copy'>
-                    {poi.stallName ?? t('poi_category')} • {Math.round(poi.radius)}m
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </header>
 
-      <section className='home-map' data-testid='home-map'>
-        <PoiMap
-          pois={scopedPois}
-          userLocation={userLocation}
-          focusPoint={focusPoint}
-          onPoiSelect={(poi) => setSelectedPoiId(poi.id)}
-        />
-      </section>
-
-      <section className='home-sheet'>
-        <div className='sheet-handle' />
-        <div className='sheet-header'>
-          <div className='sheet-header__row'>
-            <div className='detail-stats'>
-              <span className='pill'>{mode === 'travel' ? t('travel_mode') : t('explore_mode')}</span>
-              <span className='pill' data-testid='poi-count'>
-                {scopedPois.length} {t('poi_in_tour')}
-              </span>
-              <span className='pill' data-testid='tracking-mode'>
-                tracking {trackingMode}
-              </span>
+      <div className='home-layout home-layout--map-shell'>
+        <section className='home-stage'>
+          <aside className={`home-sidebar${isSidebarOpen ? '' : ' home-sidebar--collapsed'}`}>
+            <div className='sheet-header'>
+              {locationBanner && <div className='notice notice-error'>{locationBanner}</div>}
+              {backgroundTrackingNote && <div className='notice notice-success'>{backgroundTrackingNote}</div>}
+              {message && <div className='notice notice-error'>{message}</div>}
             </div>
-            {nearestDistance !== null && Number.isFinite(nearestDistance) && (
-              <span className='meta-tag'>{nearestDistance}m nearest</span>
-            )}
-          </div>
-          {locationBanner && <div className='notice notice-error'>{locationBanner}</div>}
-          {backgroundTrackingNote && <div className='notice notice-success'>{backgroundTrackingNote}</div>}
-          {message && <div className='notice notice-error'>{message}</div>}
-        </div>
 
-        {filteredPois.length === 0 ? (
-          <p className='helper-copy'>{t('no_poi_found')}</p>
-        ) : (
-          <div className='poi-list'>
-            {filteredPois.map((poi) => (
-              <article key={poi.id} className='poi-card' data-testid={`poi-card-${poi.id}`}>
-                <div className='poi-card__body'>
-                  <button
-                    type='button'
-                    className='poi-card__media'
-                    onClick={() => setSelectedPoiId(poi.id)}
-                    aria-label={getLocalized(poi.name, language)}
-                  >
-                    <img src={getLocalized(poi.imageUrl, language)} alt={getLocalized(poi.name, language)} />
-                  </button>
-                  <div className='poi-card__content'>
-                    <div className='sheet-header__row'>
-                      <h2 className='poi-card__title'>{getLocalized(poi.name, language)}</h2>
-                      <span className='meta-tag'>★ {poi.priority}</span>
+            <div className='page-card page-card--padded home-summary-card'>
+              <div className='choice-card__copy'>Now playing</div>
+              <div className='choice-card__title'>{currentPoiName ?? 'No audio selected'}</div>
+              {audioState.currentSrc ? (
+                <>
+                  <div className='player-inline'>
+                    <div className='player-bar__row player-inline__time'>
+                      <span>{formatTime(audioState.currentTime)}</span>
+                      <span>{formatTime(audioState.duration)}</span>
                     </div>
-                    <div className='poi-meta'>
-                      <span className='meta-tag'>{poi.stallName ?? 'Địa điểm'}</span>
-                      <span className='meta-tag'>{Math.round(poi.radius)}m</span>
-                    </div>
-                    <p className='poi-card__copy'>{getLocalized(poi.description, language)}</p>
-                    <div className='poi-card__actions'>
-                      <Link to={`/poi/${poi.id}`} data-testid={`poi-detail-${poi.id}`} className='button button-secondary'>
-                        Detail
-                      </Link>
-                      <button
-                        type='button'
-                        onClick={() => {
-                          void playPoi(poi)
-                        }}
-                        data-testid={`poi-play-${poi.id}`}
-                        className='button button-primary'
-                      >
-                        {t('play')}
-                      </button>
-                    </div>
+                    <input
+                      type='range'
+                      min={0}
+                      max={1}
+                      step={0.001}
+                      value={audioState.duration > 0 ? audioState.currentTime / audioState.duration : 0}
+                      onChange={(event) => seek(Number(event.target.value) * audioState.duration)}
+                      data-testid='audio-progress-inline'
+                    />
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {audioState.currentSrc && (
-        <footer className='player-bar' data-testid='audio-player'>
-          <div className='player-bar__row' style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            <span>{formatTime(audioState.currentTime)}</span>
-            <span>{formatTime(audioState.duration)}</span>
-          </div>
-          <input
-            type='range'
-            min={0}
-            max={1}
-            step={0.001}
-            value={audioState.duration > 0 ? audioState.currentTime / audioState.duration : 0}
-            onChange={(event) => seek(Number(event.target.value) * audioState.duration)}
-            data-testid='audio-progress'
-          />
-          <div className='player-bar__row' style={{ marginTop: '10px' }}>
-            <div>
-              <div className='choice-card__title'>{currentPoiName ?? t('playing')}</div>
-              <div className='choice-card__copy'>{audioState.isPlaying ? t('playing') : t('paused')}</div>
+                  <div className='poi-card__actions home-summary-card__actions'>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        if (audioState.isPlaying) {
+                          pause()
+                        } else {
+                          void play()
+                        }
+                      }}
+                      data-testid='audio-toggle-inline'
+                      className='button button-secondary button-icon'
+                      aria-label={audioState.isPlaying ? t('paused') : t('play')}
+                      title={audioState.isPlaying ? t('paused') : t('play')}
+                    >
+                      {audioState.isPlaying ? '❚❚' : '▶'}
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => stop()}
+                      data-testid='audio-stop-inline'
+                      className='button button-tertiary button-icon'
+                      aria-label={t('stop')}
+                      title={t('stop')}
+                    >
+                      ■
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className='poi-card__copy'>Select a location to preview narration.</p>
+              )}
             </div>
-            <div className='poi-card__actions'>
+
+            <div className='page-card page-card--padded home-results-card'>
+              <div className='sheet-header__row'>
+                <h2 className='poi-card__title'>Locations</h2>
+                <span className='meta-tag'>{sortedFilteredPois.length} results</span>
+              </div>
+              {sortedFilteredPois.length === 0 ? (
+                <p className='helper-copy'>{t('no_poi_found')}</p>
+              ) : (
+                <div className='poi-list poi-list--compact'>
+                  {sortedFilteredPois.map((poi) => (
+                    <article
+                      key={poi.id}
+                      className={`poi-card poi-card--compact${activePoi?.id === poi.id ? ' poi-card--active' : ''}`}
+                      data-testid={`poi-card-${poi.id}`}
+                    >
+                      <div className='poi-card__rail'>
+                        <button
+                          type='button'
+                          className='poi-card__media'
+                          onClick={() => handleSelectPoi(poi.id)}
+                          aria-label={getLocalized(poi.name, language)}
+                        >
+                          <img src={getLocalized(poi.imageUrl, language)} alt={getLocalized(poi.name, language)} />
+                        </button>
+                      </div>
+                      <div className='poi-card__content'>
+                        <div className='sheet-header__row poi-card__header-row'>
+                          <h2 className='poi-card__title'>{getLocalized(poi.name, language)}</h2>
+                          <span className='meta-tag meta-tag--rating' style={{ whiteSpace: 'nowrap' }}>
+                            ★ {poi.priority}/5
+                          </span>
+                        </div>
+                        <div className='poi-meta'>
+                          <span className='meta-tag meta-tag--accent'>{poi.stallName ?? 'Địa điểm'}</span>
+                          <span className='meta-tag'>◉ {Math.round(poi.radius)}m</span>
+                        </div>
+                        <p className='poi-card__copy'>{getLocalized(poi.description, language)}</p>
+                        <div className='poi-card__actions poi-card__actions--compact'>
+                          <button
+                            type='button'
+                            onClick={() => handleSelectPoi(poi.id)}
+                            className='button button-secondary button-icon button-icon--soft'
+                            aria-label='Preview location'
+                            title='Preview'
+                          >
+                            👁
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              void playPoi(poi)
+                            }}
+                            data-testid={`poi-play-${poi.id}`}
+                            className='button button-primary button-icon button-icon--large'
+                            aria-label={t('play')}
+                            title={t('play')}
+                          >
+                            ▶
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <section className='home-map page-card' data-testid='home-map'>
+            <button
+              type='button'
+              className='home-map__recenter'
+              onClick={() => setIsFollowingUserLocation(true)}
+              disabled={!userLocation}
+              aria-label='Quay về vị trí hiện tại'
+              title={userLocation ? 'Quay về vị trí hiện tại' : 'Chưa có vị trí hiện tại'}
+            >
+              ◎
+            </button>
+            <PoiMap
+              pois={scopedPois}
+              userLocation={userLocation}
+              focusPoint={focusPoint}
+              onPoiSelect={(poi) => handleSelectPoi(poi.id)}
+            />
+          </section>
+          {activePoi ? (
+            <div className='page-card page-card--padded home-detail-card home-detail-card--floating'>
               <button
                 type='button'
-                onClick={() => {
-                  if (audioState.isPlaying) {
-                    pause()
-                  } else {
-                    void play()
-                  }
-                }}
-                data-testid='audio-toggle'
-                className='button button-secondary'
+                className='home-detail-card__close'
+                onClick={() => setIsDetailOpen(false)}
+                aria-label='Close detail panel'
+                title='Close'
               >
-                {audioState.isPlaying ? t('paused') : t('play')}
+                ✕
               </button>
-              <button type='button' onClick={() => stop()} data-testid='audio-stop' className='button button-tertiary'>
-                {t('stop')}
-              </button>
+              <div className='home-detail-card__image'>
+                <img src={getLocalized(activePoi.imageUrl, language)} alt={getLocalized(activePoi.name, language)} />
+              </div>
+              <h2 className='home-detail-card__title'>{getLocalized(activePoi.name, language)}</h2>
+              <div className='screen-header' style={{ marginBottom: 0 }}>
+                <p className='screen-header__copy'>{getLocalized(activePoi.description, language)}</p>
+              </div>
+
+              <div className='detail-stats'>
+                <span className='meta-tag'>Priority {activePoi.priority}</span>
+                <span className='meta-tag'>{Math.round(activePoi.radius)}m radius</span>
+                <span className='meta-tag'>
+                  {activePoi.contents?.filter((content) => Boolean(content.audioUrl)).length ?? 0} audio guides
+                </span>
+              </div>
+
+              <div className='poi-card__actions'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    void playPoi(activePoi)
+                  }}
+                  data-testid={`poi-preview-play-${activePoi.id}`}
+                  className='button button-primary button-icon button-icon--large'
+                  aria-label={t('play')}
+                  title={t('play')}
+                >
+                  ▶
+                </button>
+              </div>
             </div>
-          </div>
-        </footer>
-      )}
+          ) : null}
+        </section>
+      </div>
     </div>
   )
 }
