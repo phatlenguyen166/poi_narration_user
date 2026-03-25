@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { useAudioPlayer } from '../hooks/useAudioPlayer'
 import { usePoisQuery, useToursQuery } from '../hooks/useRepository'
@@ -22,6 +22,7 @@ const noGeolocationSupport = typeof navigator !== 'undefined' && !navigator.geol
 
 export const HomeScreen = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const t = useTranslation()
   const { language, mode, activeTourId, backgroundMode, currentUser } = useApp()
@@ -155,9 +156,21 @@ export const HomeScreen = () => {
   )
 
   const handleSelectPoi = (poiId: string) => {
+    const poi = pois.find((item) => item.id === poiId) ?? null
+    const nextParams = new URLSearchParams()
+
+    if (poi?.stallId) {
+      nextParams.set('stallId', poi.stallId)
+    }
+    nextParams.set('poiId', poiId)
+
     setSelectedPoiId(poiId)
     setIsDetailOpen(true)
     setIsFollowingUserLocation(false)
+
+    if (location.pathname !== '/poi' || location.search !== `?${nextParams.toString()}`) {
+      navigate(`/poi?${nextParams.toString()}`, { replace: false })
+    }
   }
 
   useEffect(() => {

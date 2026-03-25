@@ -3,6 +3,7 @@ import { MobileFrame } from './components/MobileFrame'
 import { useApp } from './context/useApp'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoginScreen } from './screens/LoginScreen'
+import { PoiEntryScreen } from './screens/PoiEntryScreen'
 import { QrResolveScreen } from './screens/QrResolveScreen'
 import { RegisterScreen } from './screens/RegisterScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
@@ -70,6 +71,7 @@ function App() {
           <Route path='/register' element={<RegisterScreen />} />
         </Route>
 
+        <Route path='/poi' element={<PoiEntryScreen />} />
         <Route path='/qr/:targetType/:targetId' element={<QrResolveScreen />} />
 
         <Route element={<RequireAuth />}>
