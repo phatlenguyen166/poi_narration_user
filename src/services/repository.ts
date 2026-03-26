@@ -15,6 +15,7 @@ interface PublicPoiResponse {
   stallName: string
   address: string
   name: string
+  imageUrl?: string | null
   latitude: number
   longitude: number
   radiusMeters: number
@@ -91,6 +92,7 @@ const localizeDescription = (contents: PoiContent[], fallback: string): Record<A
 const mapPoi = (item: PublicPoiResponse): Poi => {
   const contents = toPoiContents(item.contents)
   const fallbackImage = `https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&sig=${item.id}`
+  const resolvedImage = resolveApiUrl(item.imageUrl) ?? fallbackImage
 
   return {
     id: String(item.id),
@@ -103,7 +105,7 @@ const mapPoi = (item: PublicPoiResponse): Poi => {
     longitude: item.longitude,
     radius: item.radiusMeters,
     priority: item.priority,
-    imageUrl: sameText(fallbackImage),
+    imageUrl: sameText(resolvedImage),
     category: 'stall',
     contents
   }

@@ -1,4 +1,4 @@
-import { useState, type PropsWithChildren } from 'react'
+import { useEffect, useState, type PropsWithChildren } from 'react'
 import { DEFAULT_LANGUAGE, DEFAULT_MODE } from '../constants'
 import { authService, type AuthErrorKey } from '../services/auth'
 import { preferences } from '../services/preferences'
@@ -12,6 +12,12 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
   const [activeTourId, setActiveTourIdState] = useState<string | null>(() => preferences.getActiveTourId())
   const [firstLaunch, setFirstLaunch] = useState<boolean>(() => preferences.getFirstLaunch())
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => authService.initialize())
+
+  useEffect(() => {
+    void authService.validateSession().then((user) => {
+      setCurrentUser(user)
+    })
+  }, [])
 
   const setLanguage = (nextLanguage: AppLanguage): void => {
     setLanguageState(nextLanguage)

@@ -258,7 +258,7 @@ export const HomeScreen = () => {
             })
           }
 
-          if (mode !== 'travel' || !nearby) {
+          if (!nearby) {
             return
           }
 
@@ -281,9 +281,12 @@ export const HomeScreen = () => {
               playbackStatus: 'STARTED'
             })
           }
+          await audioService.unlock()
           const playback = await audioService.playSources(getAudioSources(nearby, language))
           if (playback.status === 'missing') {
             setMessage(t('no_audio_for_language'))
+          } else if (playback.status === 'blocked') {
+            setMessage('Trinh duyet dang chan tu dong phat audio')
           } else {
             setMessage(null)
           }
