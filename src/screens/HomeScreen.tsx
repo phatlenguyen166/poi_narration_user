@@ -43,6 +43,7 @@ export const HomeScreen = () => {
   const watchIdRef = useRef<number | null>(null)
   const lastTriggerPoiIdRef = useRef<string | null>(null)
   const lastTriggerTimeRef = useRef<number | null>(null)
+  const previousAudioRef = useRef(audioState)
   const qrStallId = searchParams.get('stallId')
   const qrPoiId = searchParams.get('poiId')
 
@@ -155,6 +156,42 @@ export const HomeScreen = () => {
     [audioState.currentSrc, isDetailOpen, scopedPois, selectedPoi, sortedFilteredPois]
   )
 
+  const logPlaybackOutcome = (
+    playbackStatus: 'COMPLETED' | 'STOPPED',
+    currentSrc: string | null,
+    listenDurationSeconds: number,
+    durationSeconds: number
+  ) => {
+    if (!currentUser || !currentSrc) {
+      return
+    }
+
+    const poi = scopedPois.find((item) => poiHasAudioSource(item, currentSrc))
+    if (!poi?.stallId) {
+      return
+    }
+
+    const roundedDuration = Math.max(0, Math.round(listenDurationSeconds))
+    if (roundedDuration <= 0) {
+      return
+    }
+
+    const completionRate = durationSeconds > 0
+      ? Math.min(100, Number(((roundedDuration / durationSeconds) * 100).toFixed(2)))
+      : undefined
+
+    void createPlaybackLog({
+      tourist: currentUser,
+      stallId: poi.stallId,
+      poi,
+      language,
+      listenDurationSeconds: roundedDuration,
+      triggerMode: qrStallId ? 'QR' : mode === 'explore' ? 'MANUAL' : 'GEOFENCE',
+      playbackStatus,
+      completionRate
+    })
+  }
+
   const handleSelectPoi = (poiId: string) => {
     const poi = pois.find((item) => item.id === poiId) ?? null
     const nextParams = new URLSearchParams()
@@ -216,6 +253,28 @@ export const HomeScreen = () => {
   }, [audioState.currentSrc, audioState.isPlaying, language, scopedPois, t])
 
   useEffect(() => {
+    const previous = previousAudioRef.current
+    const sameSource = previous.currentSrc !== null && previous.currentSrc === audioState.currentSrc
+
+    if (
+      sameSource &&
+      previous.isPlaying &&
+      !audioState.isPlaying &&
+      previous.currentTime > 0 &&
+      audioState.currentTime === 0
+    ) {
+      logPlaybackOutcome(
+        'COMPLETED',
+        previous.currentSrc,
+        previous.duration > 0 ? previous.duration : previous.currentTime,
+        previous.duration
+      )
+    }
+
+    previousAudioRef.current = audioState
+  }, [audioState, currentUser, language, mode, qrStallId, scopedPois])
+
+  useEffect(() => {
     if (!navigator.geolocation) {
       return
     }
@@ -270,17 +329,6 @@ export const HomeScreen = () => {
 
           lastTriggerPoiIdRef.current = nearby.id
           lastTriggerTimeRef.current = Date.now()
-          if (nearby.stallId) {
-            void createPlaybackLog({
-              tourist: currentUser,
-              stallId: nearby.stallId,
-              poi: nearby,
-              language,
-              listenDurationSeconds: 0,
-              triggerMode: qrStallId ? 'QR' : 'GEOFENCE',
-              playbackStatus: 'STARTED'
-            })
-          }
           await audioService.unlock()
           const playback = await audioService.playSources(getAudioSources(nearby, language))
           if (playback.status === 'missing') {
@@ -321,17 +369,6 @@ export const HomeScreen = () => {
 
   const playPoi = async (poi: Poi): Promise<void> => {
     await audioService.unlock()
-    if (poi.stallId) {
-      void createPlaybackLog({
-        tourist: currentUser,
-        stallId: poi.stallId,
-        poi,
-        language,
-        listenDurationSeconds: 0,
-        triggerMode: mode === 'explore' ? 'MANUAL' : 'GEOFENCE',
-        playbackStatus: 'STARTED'
-      })
-    }
     const playback = await audioService.playSources(getAudioSources(poi, language))
     if (playback.status === 'missing') {
       setMessage(t('no_audio_for_language'))
@@ -488,6 +525,7 @@ export const HomeScreen = () => {
                       type='button'
                       onClick={() => {
                         if (audioState.isPlaying) {
+                          logPlaybackOutcome('STOPPED', audioState.currentSrc, audioState.currentTime, audioState.duration)
                           pause()
                         } else {
                           void play()
@@ -502,7 +540,10 @@ export const HomeScreen = () => {
                     </button>
                     <button
                       type='button'
-                      onClick={() => stop()}
+                      onClick={() => {
+                        logPlaybackOutcome('STOPPED', audioState.currentSrc, audioState.currentTime, audioState.duration)
+                        stop()
+                      }}
                       data-testid='audio-stop-inline'
                       className='button button-tertiary button-icon'
                       aria-label={t('stop')}
