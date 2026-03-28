@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/useApp'
-import { resolveQrTarget } from '../services/repository'
+import { endTravelSession, resolveQrTarget, selectTravelTour } from '../services/repository'
 import { preferences } from '../services/preferences'
 
 export const QrResolveScreen = () => {
@@ -25,8 +25,15 @@ export const QrResolveScreen = () => {
     const run = async () => {
       try {
         const result = await resolveQrTarget(targetType, targetId)
-        setMode('explore')
-        setActiveTourId(result.targetType === 'STALL' ? `stall-${result.targetId}` : result.targetType === 'TOUR' ? String(result.targetId) : null)
+        if (result.targetType === 'TOUR') {
+          setMode('travel')
+          await selectTravelTour(String(result.targetId))
+          setActiveTourId(String(result.targetId))
+        } else {
+          await endTravelSession()
+          setMode('explore')
+          setActiveTourId(`stall-${result.targetId}`)
+        }
 
         navigate('/home', { replace: true })
       } catch {

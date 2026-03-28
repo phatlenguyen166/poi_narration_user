@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { useToursQuery } from '../hooks/useRepository'
 import { useTranslation } from '../hooks/useTranslation'
+import { selectTravelTour } from '../services/repository'
 import { getLocalized } from '../utils/localization'
 
 export const TourSelectionScreen = () => {
@@ -14,6 +15,7 @@ export const TourSelectionScreen = () => {
   const [selectedTourId, setSelectedTourId] = useState<string | null>(null)
   const [searchText, setSearchText] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const filteredTours = useMemo(() => {
     const query = searchText.trim().toLowerCase()
@@ -27,13 +29,21 @@ export const TourSelectionScreen = () => {
     })
   }, [language, searchText, tours])
 
-  const startTour = (): void => {
+  const startTour = async (): Promise<void> => {
     if (!selectedTourId) {
       setErrorMessage(t('please_select_tour'))
       return
     }
-    setActiveTourId(selectedTourId)
-    navigate('/home', { replace: true })
+    setSubmitting(true)
+    try {
+      await selectTravelTour(selectedTourId)
+      setActiveTourId(selectedTourId)
+      navigate('/home', { replace: true })
+    } catch {
+      setErrorMessage('Không thể khởi tạo phiên tour.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -98,12 +108,13 @@ export const TourSelectionScreen = () => {
 
         <button
           type='button'
-          onClick={startTour}
+          onClick={() => void startTour()}
           data-testid='tour-start'
           className='button button-primary'
+          disabled={submitting}
           style={{ marginTop: '16px' }}
         >
-          {t('start_tour')}
+          {submitting ? 'Starting...' : t('start_tour')}
         </button>
         </div>
       </div>

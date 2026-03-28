@@ -1,4 +1,5 @@
 import { api, resolveApiUrl } from './api'
+import { preferences } from './preferences'
 import type { AppLanguage, GeoPoint, Poi, PoiContent, Tour, UserProfile } from '../types'
 
 interface PublicPoiContentResponse {
@@ -29,6 +30,28 @@ interface PublicQrResolveResponse {
   targetId: number
   targetName: string
   description: string | null
+}
+
+interface PublicTourResponse {
+  id: number
+  name: string
+  description: string | null
+  estimatedDurationMinutes: number | null
+  poiIds: number[]
+}
+
+interface TouristTravelSessionResponse {
+  touristTourId: number
+  tourId: number
+  sessionId: number
+  joinedAt: string
+  sessionStartedAt: string
+  reusedTouristTour: boolean
+}
+
+const authHeaders = () => {
+  const token = preferences.getAccessToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 const sameText = (value: string): Record<AppLanguage, string> => ({
@@ -141,29 +164,26 @@ export const fetchPois = async (): Promise<Poi[]> => {
 }
 
 export const fetchTours = async (): Promise<Tour[]> => {
-  const pois = await fetchPois()
-  const grouped = new Map<string, Poi[]>()
+  const [{ data: tours }, pois] = await Promise.all([
+    api.get<PublicTourResponse[]>('/api/v1/public/tours'),
+    fetchPois()
+  ])
+  const poiById = new Map(pois.map((poi) => [poi.id, poi]))
 
-  for (const poi of pois) {
-    if (!poi.stallId) continue
-    const existing = grouped.get(poi.stallId) || []
-    existing.push(poi)
-    grouped.set(poi.stallId, existing)
-  }
-
-  return Array.from(grouped.entries()).map(([stallId, stallPois]) => {
-    const firstPoi = stallPois[0]
-    const fallbackDescription = firstPoi?.stallDescription?.['en-US'] || ''
-
-    return {
-      id: `stall-${stallId}`,
-      icon: getTourIcon(firstPoi?.stallName || ''),
-      estimatedMinutes: Math.max(15, stallPois.length * 12),
-      poiIds: stallPois.map((poi) => poi.id),
-      name: sameText(firstPoi?.stallName || `Stall ${stallId}`),
-      description: sameText(fallbackDescription)
-    }
-  })
+  return tours
+    .map((tour) => {
+      const poiIds = (tour.poiIds || []).map(String)
+      const firstPoi = poiIds.map((id) => poiById.get(id)).find((poi): poi is Poi => !!poi)
+      return {
+        id: String(tour.id),
+        icon: getTourIcon(firstPoi?.stallName || tour.name || ''),
+        estimatedMinutes: tour.estimatedDurationMinutes ?? Math.max(15, poiIds.length * 12),
+        poiIds,
+        name: sameText(tour.name || `Tour ${tour.id}`),
+        description: sameText(tour.description || firstPoi?.stallDescription?.['en-US'] || '')
+      }
+    })
+    .filter((tour) => tour.poiIds.length > 0)
 }
 
 export const createPlaybackLog = async (params: {
@@ -178,10 +198,11 @@ export const createPlaybackLog = async (params: {
 }): Promise<void> => {
   if (!params.tourist) return
   const guide = findGuideForLanguage(params.poi, params.language)
+  const sessionId = preferences.getAppMode() === 'travel' ? preferences.getActiveTourSessionId() : null
 
   await api.post('/api/v1/public/playback-logs', {
     touristId: Number(params.tourist.id),
-    sessionId: null,
+    sessionId: sessionId ? Number(sessionId) : null,
     stallId: Number(params.stallId),
     stallAudioGuideId: guide?.stallAudioGuideId ? Number(guide.stallAudioGuideId) : null,
     languageCode: toBackendLanguageCode(params.language),
@@ -202,10 +223,11 @@ export const createMovementLog = async (params: {
   eventType?: 'ENTER' | 'EXIT' | 'DWELL'
 }): Promise<void> => {
   if (!params.tourist) return
+  const sessionId = preferences.getAppMode() === 'travel' ? preferences.getActiveTourSessionId() : null
 
   await api.post('/api/v1/public/movement-logs', {
     touristId: Number(params.tourist.id),
-    sessionId: null,
+    sessionId: sessionId ? Number(sessionId) : null,
     stallId: params.stallId ? Number(params.stallId) : null,
     eventType: params.eventType ?? 'DWELL',
     latitude: params.position.latitude,
@@ -215,15 +237,51 @@ export const createMovementLog = async (params: {
   })
 }
 
+export const selectTravelTour = async (tourId: string): Promise<TouristTravelSessionResponse> => {
+  const { data } = await api.post<TouristTravelSessionResponse>(
+    '/api/v1/tourist/travel/select-tour',
+    { tourId: Number(tourId) },
+    { headers: authHeaders() }
+  )
+  preferences.setActiveTouristTourId(String(data.touristTourId))
+  preferences.setActiveTourSessionId(String(data.sessionId))
+  return data
+}
+
+export const endTravelSession = async (): Promise<void> => {
+  const sessionId = preferences.getActiveTourSessionId()
+  const token = preferences.getAccessToken()
+  if (!sessionId || !token) {
+    preferences.setActiveTouristTourId(null)
+    preferences.setActiveTourSessionId(null)
+    return
+  }
+
+  try {
+    await api.post('/api/v1/tourist/travel/end-session', {}, { headers: authHeaders() })
+  } finally {
+    preferences.setActiveTouristTourId(null)
+    preferences.setActiveTourSessionId(null)
+  }
+}
+
 export const resolveQrTarget = async (targetType: 'stall' | 'tour', targetId: string): Promise<PublicQrResolveResponse> => {
   const { data } = await api.get<PublicQrResolveResponse>(`/api/v1/public/qr/${targetType}/${targetId}`)
   return data
 }
 
-export const filterPoisByActiveTour = (pois: Poi[], activeTourId: string | null): Poi[] => {
-  if (!activeTourId?.startsWith('stall-')) return pois
-  const stallId = activeTourId.replace('stall-', '')
-  return pois.filter((poi) => poi.stallId === stallId)
+export const filterPoisByActiveTour = (pois: Poi[], activeTourId: string | null, tours: Tour[]): Poi[] => {
+  if (!activeTourId) return pois
+  if (activeTourId.startsWith('stall-')) {
+    const stallId = activeTourId.replace('stall-', '')
+    return pois.filter((poi) => poi.stallId === stallId)
+  }
+  const activeTour = tours.find((tour) => tour.id === activeTourId)
+  if (!activeTour) {
+    return []
+  }
+  const poiIds = new Set(activeTour.poiIds)
+  return pois.filter((poi) => poiIds.has(poi.id))
 }
 
 export const getAudioSources = (poi: Poi, language: AppLanguage): string[] => {

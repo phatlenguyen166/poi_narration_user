@@ -50,7 +50,7 @@ export const HomeScreen = () => {
 
   const scopedPois = useMemo(() => {
     if (mode === 'travel' && activeTour) {
-      return filterPoisByActiveTour(pois, activeTour.id)
+      return filterPoisByActiveTour(pois, activeTour.id, tours)
     }
     if (mode === 'travel') {
       return []
@@ -168,8 +168,8 @@ export const HomeScreen = () => {
     setIsDetailOpen(true)
     setIsFollowingUserLocation(false)
 
-    if (location.pathname !== '/poi' || location.search !== `?${nextParams.toString()}`) {
-      navigate(`/poi?${nextParams.toString()}`, { replace: false })
+    if (location.pathname !== '/home' || location.search !== `?${nextParams.toString()}`) {
+      navigate(`/home?${nextParams.toString()}`, { replace: false })
     }
   }
 
@@ -420,6 +420,16 @@ export const HomeScreen = () => {
           </div>
 
           <div className='topbar__cluster topbar__cluster--right'>
+            <button
+              type='button'
+              onClick={() => navigate('/')}
+              data-testid='go-home'
+              className='icon-button'
+              aria-label='Go to home page'
+              title='Home'
+            >
+              ⌂
+            </button>
             {mode === 'travel' && (
               <button
                 type='button'

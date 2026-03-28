@@ -2,6 +2,7 @@ import { useEffect, useState, type PropsWithChildren } from 'react'
 import { DEFAULT_LANGUAGE, DEFAULT_MODE } from '../constants'
 import { authService, type AuthErrorKey } from '../services/auth'
 import { preferences } from '../services/preferences'
+import { endTravelSession } from '../services/repository'
 import type { AppLanguage, AppMode, UserProfile } from '../types'
 import { AppContext, type AppContextValue, type RegisterPayload } from './appContextStore'
 
@@ -69,7 +70,10 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
   }
 
   const signOut = (): void => {
+    void endTravelSession()
     authService.signOut()
+    preferences.clearActiveTravelState()
+    setActiveTourIdState(null)
     setCurrentUser(null)
   }
 

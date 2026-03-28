@@ -625,6 +625,7 @@ select {
 .home-results-card {
   min-height: 0;
   align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -744,6 +745,8 @@ select {
 .poi-list {
   display: grid;
   gap: 10px;
+  align-content: start;
+  grid-auto-rows: max-content;
 }
 
 .poi-card {
@@ -768,6 +771,8 @@ select {
   display: grid;
   grid-template-columns: 108px minmax(0, 1fr);
   border-radius: 26px;
+  min-height: 116px;
+  align-items: start;
 }
 
 .poi-card__rail {
@@ -784,6 +789,7 @@ select {
 
 .poi-list--compact {
   min-height: 0;
+  height: 100%;
   overflow: auto;
   padding-right: 4px;
 }
@@ -817,6 +823,7 @@ select {
   flex: 1 1 auto;
   display: grid;
   gap: 8px;
+  align-content: start;
 }
 
 .poi-card__title {
