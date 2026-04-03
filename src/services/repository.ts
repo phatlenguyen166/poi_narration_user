@@ -217,17 +217,18 @@ export const createMovementLog = async (params: {
   tourist: UserProfile | null
   stallId?: string
   position: GeoPoint
-  source: 'travel_watch' | 'explore_view'
+  source: 'travel_watch'
   distanceToStallMeters?: number | null
   dwellDurationSeconds?: number | null
   eventType?: 'ENTER' | 'EXIT' | 'DWELL'
 }): Promise<void> => {
   if (!params.tourist) return
   const sessionId = preferences.getAppMode() === 'travel' ? preferences.getActiveTourSessionId() : null
+  if (!sessionId) return
 
   await api.post('/api/v1/public/movement-logs', {
     touristId: Number(params.tourist.id),
-    sessionId: sessionId ? Number(sessionId) : null,
+    sessionId: Number(sessionId),
     stallId: params.stallId ? Number(params.stallId) : null,
     eventType: params.eventType ?? 'DWELL',
     latitude: params.position.latitude,

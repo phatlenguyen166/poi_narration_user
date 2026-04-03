@@ -43,6 +43,8 @@ export const HomeScreen = () => {
   const watchIdRef = useRef<number | null>(null)
   const lastTriggerPoiIdRef = useRef<string | null>(null)
   const lastTriggerTimeRef = useRef<number | null>(null)
+  const activeMovementPoiRef = useRef<{ poiId: string; stallId: string; enteredAt: number } | null>(null)
+  const skipNextResetPlaybackLogRef = useRef(false)
   const previousAudioRef = useRef(audioState)
   const qrStallId = searchParams.get('stallId')
   const qrPoiId = searchParams.get('poiId')
@@ -229,6 +231,12 @@ export const HomeScreen = () => {
   }, [desiredTrackingMode])
 
   useEffect(() => {
+    if (mode !== 'travel' || !activeTourId) {
+      activeMovementPoiRef.current = null
+    }
+  }, [activeTourId, mode])
+
+  useEffect(() => {
     if (!audioState.currentSrc) {
       return
     }
@@ -255,6 +263,17 @@ export const HomeScreen = () => {
   useEffect(() => {
     const previous = previousAudioRef.current
     const sameSource = previous.currentSrc !== null && previous.currentSrc === audioState.currentSrc
+
+    if (
+      skipNextResetPlaybackLogRef.current &&
+      sameSource &&
+      previous.currentTime > 0 &&
+      audioState.currentTime === 0
+    ) {
+      skipNextResetPlaybackLogRef.current = false
+      previousAudioRef.current = audioState
+      return
+    }
 
     if (
       sameSource &&
@@ -305,16 +324,48 @@ export const HomeScreen = () => {
           setLocationError(null)
 
           const nearby = findNearbyPoi(nextLocation, scopedPois)
-          const movementTarget = nearby ?? scopedPois[0] ?? null
-          if (movementTarget?.stallId) {
-            void createMovementLog({
-              tourist: currentUser,
-              stallId: movementTarget.stallId,
-              position: nextLocation,
-              source: mode === 'travel' ? 'travel_watch' : 'explore_view',
-              distanceToStallMeters: nearby ? Math.round(getDistanceToNearestPoi(nextLocation, [nearby])) : null,
-              eventType: nearby ? 'ENTER' : 'DWELL'
-            })
+          const currentMovement = activeMovementPoiRef.current
+          const now = Date.now()
+
+          if (mode === 'travel') {
+            if (currentMovement && (!nearby || nearby.id !== currentMovement.poiId)) {
+              const previousPoi = scopedPois.find((poi) => poi.id === currentMovement.poiId)
+              const exitDistance = previousPoi
+                ? Math.round(
+                  calculateDistanceMeters(nextLocation, {
+                    latitude: previousPoi.latitude,
+                    longitude: previousPoi.longitude
+                  })
+                )
+                : null
+
+              void createMovementLog({
+                tourist: currentUser,
+                stallId: currentMovement.stallId,
+                position: nextLocation,
+                source: 'travel_watch',
+                distanceToStallMeters: exitDistance,
+                dwellDurationSeconds: Math.max(0, Math.round((now - currentMovement.enteredAt) / 1000)),
+                eventType: 'EXIT'
+              })
+              activeMovementPoiRef.current = null
+            }
+
+            if (nearby?.stallId && (!currentMovement || currentMovement.poiId !== nearby.id)) {
+              activeMovementPoiRef.current = {
+                poiId: nearby.id,
+                stallId: nearby.stallId,
+                enteredAt: now
+              }
+              void createMovementLog({
+                tourist: currentUser,
+                stallId: nearby.stallId,
+                position: nextLocation,
+                source: 'travel_watch',
+                distanceToStallMeters: Math.round(getDistanceToNearestPoi(nextLocation, [nearby])),
+                eventType: 'ENTER'
+              })
+            }
           }
 
           if (!nearby) {
@@ -541,6 +592,7 @@ export const HomeScreen = () => {
                     <button
                       type='button'
                       onClick={() => {
+                        skipNextResetPlaybackLogRef.current = true
                         logPlaybackOutcome('STOPPED', audioState.currentSrc, audioState.currentTime, audioState.duration)
                         stop()
                       }}
