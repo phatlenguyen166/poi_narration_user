@@ -17,6 +17,7 @@ export interface AppContextValue {
   backgroundMode: boolean
   activeTourId: string | null
   firstLaunch: boolean
+  deviceCheckCompleted: boolean
   currentUser: UserProfile | null
   isLoggedIn: boolean
   setLanguage: (language: AppLanguage) => void
@@ -24,6 +25,7 @@ export interface AppContextValue {
   setBackgroundMode: (enabled: boolean) => void
   setActiveTourId: (tourId: string | null) => void
   completeFirstLaunch: () => void
+  completeDeviceCheck: () => void
   signInWithEmail: (email: string, password: string) => Promise<AuthErrorKey | null>
   signInWithGoogle: () => Promise<AuthErrorKey | null>
   registerUser: (payload: RegisterPayload) => Promise<AuthErrorKey | null>

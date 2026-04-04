@@ -3,6 +3,7 @@ import type { AppLanguage, AppMode } from './types'
 export const STORAGE_KEYS = {
   appMode: 'app_mode',
   firstLaunch: 'first_launch',
+  deviceCheckCompleted: 'device_check_completed',
   backgroundMode: 'background_mode',
   appLanguage: 'app_language',
   activeTourId: 'active_tour_id',

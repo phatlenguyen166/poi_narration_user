@@ -12,6 +12,7 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
   const [backgroundMode, setBackgroundModeState] = useState<boolean>(() => preferences.getBackgroundMode())
   const [activeTourId, setActiveTourIdState] = useState<string | null>(() => preferences.getActiveTourId())
   const [firstLaunch, setFirstLaunch] = useState<boolean>(() => preferences.getFirstLaunch())
+  const [deviceCheckCompleted, setDeviceCheckCompleted] = useState<boolean>(() => preferences.getDeviceCheckCompleted())
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => authService.initialize())
 
   useEffect(() => {
@@ -43,6 +44,11 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
   const completeFirstLaunch = (): void => {
     setFirstLaunch(false)
     preferences.setFirstLaunchCompleted()
+  }
+
+  const completeDeviceCheck = (): void => {
+    setDeviceCheckCompleted(true)
+    preferences.setDeviceCheckCompleted()
   }
 
   const signInWithEmail = async (email: string, password: string): Promise<AuthErrorKey | null> => {
@@ -83,6 +89,7 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
     backgroundMode,
     activeTourId,
     firstLaunch,
+    deviceCheckCompleted,
     currentUser,
     isLoggedIn: currentUser !== null,
     setLanguage,
@@ -90,6 +97,7 @@ export const AppProvider = ({ children }: PropsWithChildren) => {
     setBackgroundMode,
     setActiveTourId,
     completeFirstLaunch,
+    completeDeviceCheck,
     signInWithEmail,
     signInWithGoogle,
     registerUser,

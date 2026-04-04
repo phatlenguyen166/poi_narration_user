@@ -41,6 +41,12 @@ export const preferences = {
   setFirstLaunchCompleted(): void {
     set(STORAGE_KEYS.firstLaunch, 'false')
   },
+  getDeviceCheckCompleted(): boolean {
+    return getBool(STORAGE_KEYS.deviceCheckCompleted, false)
+  },
+  setDeviceCheckCompleted(): void {
+    set(STORAGE_KEYS.deviceCheckCompleted, 'true')
+  },
   getAppMode(): AppMode {
     const value = get(STORAGE_KEYS.appMode)
     if (value === 'travel' || value === 'explore') {

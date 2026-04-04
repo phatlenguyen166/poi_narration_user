@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { MobileFrame } from './components/MobileFrame'
 import { useApp } from './context/useApp'
+import { DeviceCheckScreen } from './screens/DeviceCheckScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoginScreen } from './screens/LoginScreen'
 import { PoiEntryScreen } from './screens/PoiEntryScreen'
@@ -11,13 +12,16 @@ import { TourSelectionScreen } from './screens/TourSelectionScreen'
 import { WelcomeScreen } from './screens/WelcomeScreen'
 
 const RootRedirect = () => {
-  const { isLoggedIn, firstLaunch, mode, activeTourId } = useApp()
+  const { isLoggedIn, firstLaunch, deviceCheckCompleted, mode, activeTourId } = useApp()
 
   if (!isLoggedIn) {
     return <Navigate to='/login' replace />
   }
   if (firstLaunch) {
     return <Navigate to='/welcome' replace />
+  }
+  if (!deviceCheckCompleted) {
+    return <Navigate to='/device-check' replace />
   }
   if (mode === 'travel' && !activeTourId) {
     return <Navigate to='/tour-selection' replace />
@@ -42,9 +46,12 @@ const RequireAuth = () => {
 }
 
 const RequireAppReady = () => {
-  const { firstLaunch, mode, activeTourId } = useApp()
+  const { firstLaunch, deviceCheckCompleted, mode, activeTourId } = useApp()
   if (firstLaunch) {
     return <Navigate to='/welcome' replace />
+  }
+  if (!deviceCheckCompleted) {
+    return <Navigate to='/device-check' replace />
   }
   if (mode === 'travel' && !activeTourId) {
     return <Navigate to='/tour-selection' replace />
@@ -56,6 +63,28 @@ const RequireFirstLaunch = () => {
   const { firstLaunch } = useApp()
   if (!firstLaunch) {
     return <Navigate to='/' replace />
+  }
+  return <Outlet />
+}
+
+const RequirePendingDeviceCheck = () => {
+  const { firstLaunch, deviceCheckCompleted } = useApp()
+  if (firstLaunch) {
+    return <Navigate to='/welcome' replace />
+  }
+  if (deviceCheckCompleted) {
+    return <Navigate to='/' replace />
+  }
+  return <Outlet />
+}
+
+const RequireSetupComplete = () => {
+  const { firstLaunch, deviceCheckCompleted } = useApp()
+  if (firstLaunch) {
+    return <Navigate to='/welcome' replace />
+  }
+  if (!deviceCheckCompleted) {
+    return <Navigate to='/device-check' replace />
   }
   return <Outlet />
 }
@@ -78,11 +107,18 @@ function App() {
           <Route element={<RequireFirstLaunch />}>
             <Route path='/welcome' element={<WelcomeScreen />} />
           </Route>
-          <Route path='/tour-selection' element={<TourSelectionScreen />} />
 
-          <Route element={<RequireAppReady />}>
-            <Route path='/home' element={<HomeScreen />} />
-            <Route path='/settings' element={<SettingsScreen />} />
+          <Route element={<RequirePendingDeviceCheck />}>
+            <Route path='/device-check' element={<DeviceCheckScreen />} />
+          </Route>
+
+          <Route element={<RequireSetupComplete />}>
+            <Route path='/tour-selection' element={<TourSelectionScreen />} />
+
+            <Route element={<RequireAppReady />}>
+              <Route path='/home' element={<HomeScreen />} />
+              <Route path='/settings' element={<SettingsScreen />} />
+            </Route>
           </Route>
         </Route>
 

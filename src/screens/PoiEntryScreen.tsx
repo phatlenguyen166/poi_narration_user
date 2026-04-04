@@ -7,7 +7,7 @@ import { HomeScreen } from './HomeScreen'
 export const PoiEntryScreen = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { isLoggedIn, mode, setMode } = useApp()
+  const { isLoggedIn, firstLaunch, deviceCheckCompleted, mode, setMode } = useApp()
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -16,12 +16,24 @@ export const PoiEntryScreen = () => {
       return
     }
 
+    if (firstLaunch) {
+      preferences.setPendingRoute(`/poi${location.search}`)
+      navigate('/welcome', { replace: true })
+      return
+    }
+
+    if (!deviceCheckCompleted) {
+      preferences.setPendingRoute(`/poi${location.search}`)
+      navigate('/device-check', { replace: true })
+      return
+    }
+
     if (mode !== 'explore') {
       setMode('explore')
     }
-  }, [isLoggedIn, location.search, mode, navigate, setMode])
+  }, [deviceCheckCompleted, firstLaunch, isLoggedIn, location.search, mode, navigate, setMode])
 
-  if (isLoggedIn && mode === 'explore') {
+  if (isLoggedIn && !firstLaunch && deviceCheckCompleted && mode === 'explore') {
     return <HomeScreen />
   }
 

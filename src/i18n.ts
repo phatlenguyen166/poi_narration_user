@@ -119,7 +119,28 @@ const en = {
   hide_password: 'Hide password',
   change_language: 'Change language',
   location_unavailable: 'Location unavailable',
-  no_audio_for_language: 'Audio file not available for current language'
+  no_audio_for_language: 'Audio file not available for current language',
+  device_check_title: 'Device Check',
+  device_check_desc: 'Verify location, audio, and internet before starting your journey.',
+  device_check_location: 'Location access',
+  device_check_audio: 'Audio playback',
+  device_check_connection: 'Internet connection',
+  device_check_device: 'Device type',
+  device_check_refresh: 'Check again',
+  device_check_continue: 'Continue',
+  device_check_test_audio: 'Test audio',
+  device_check_location_ready: 'Location is ready on this device',
+  device_check_location_prompt: 'Location permission has not been granted yet',
+  device_check_location_blocked: 'Location permission is blocked',
+  device_check_location_unavailable: 'Unable to get the current location',
+  device_check_location_unsupported: 'This browser does not support geolocation',
+  device_check_audio_ready: 'Audio playback is working',
+  device_check_audio_idle: 'Tap the button to play a short test sound',
+  device_check_audio_failed: 'Unable to play the test sound',
+  device_check_connection_online: 'Internet is available',
+  device_check_connection_offline: 'Device is offline',
+  device_check_device_mobile: 'Mobile device detected',
+  device_check_device_desktop: 'Desktop device detected'
 }
 
 export type TranslationKey = keyof typeof en
@@ -234,7 +255,28 @@ const vi: Partial<TranslationPack> = {
   hide_password: 'Ẩn mật khẩu',
   change_language: 'Đổi ngôn ngữ',
   location_unavailable: 'Không lấy được vị trí',
-  no_audio_for_language: 'Không tìm thấy audio cho ngôn ngữ hiện tại'
+  no_audio_for_language: 'Không tìm thấy audio cho ngôn ngữ hiện tại',
+  device_check_title: 'Kiểm tra thiết bị',
+  device_check_desc: 'Kiểm tra nhanh GPS, âm thanh và kết nối mạng trước khi bắt đầu.',
+  device_check_location: 'Quyền vị trí',
+  device_check_audio: 'Phát âm thanh',
+  device_check_connection: 'Kết nối mạng',
+  device_check_device: 'Loại thiết bị',
+  device_check_refresh: 'Kiểm tra lại',
+  device_check_continue: 'Tiếp tục',
+  device_check_test_audio: 'Thử âm thanh',
+  device_check_location_ready: 'Thiết bị đã sẵn sàng dùng vị trí',
+  device_check_location_prompt: 'Thiết bị chưa được cấp quyền vị trí',
+  device_check_location_blocked: 'Quyền vị trí đang bị chặn',
+  device_check_location_unavailable: 'Chưa thể lấy vị trí hiện tại',
+  device_check_location_unsupported: 'Trình duyệt không hỗ trợ định vị',
+  device_check_audio_ready: 'Âm thanh đang hoạt động bình thường',
+  device_check_audio_idle: 'Bấm nút để phát thử một âm báo ngắn',
+  device_check_audio_failed: 'Không thể phát âm thanh thử',
+  device_check_connection_online: 'Kết nối mạng đang hoạt động',
+  device_check_connection_offline: 'Thiết bị đang offline',
+  device_check_device_mobile: 'Đang dùng thiết bị di động',
+  device_check_device_desktop: 'Đang dùng máy tính'
 }
 
 const zh: Partial<TranslationPack> = {

@@ -6,7 +6,7 @@ import { preferences } from '../services/preferences'
 
 export const QrResolveScreen = () => {
   const navigate = useNavigate()
-  const { isLoggedIn, setActiveTourId, setMode } = useApp()
+  const { isLoggedIn, firstLaunch, deviceCheckCompleted, setActiveTourId, setMode } = useApp()
   const { targetType, targetId } = useParams<{ targetType: 'stall' | 'tour'; targetId: string }>()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -19,6 +19,18 @@ export const QrResolveScreen = () => {
     if (!isLoggedIn) {
       preferences.setPendingRoute(`/qr/${targetType}/${targetId}`)
       navigate('/login', { replace: true })
+      return
+    }
+
+    if (firstLaunch) {
+      preferences.setPendingRoute(`/qr/${targetType}/${targetId}`)
+      navigate('/welcome', { replace: true })
+      return
+    }
+
+    if (!deviceCheckCompleted) {
+      preferences.setPendingRoute(`/qr/${targetType}/${targetId}`)
+      navigate('/device-check', { replace: true })
       return
     }
 
@@ -42,7 +54,7 @@ export const QrResolveScreen = () => {
     }
 
     void run()
-  }, [isLoggedIn, navigate, setActiveTourId, setMode, targetId, targetType])
+  }, [deviceCheckCompleted, firstLaunch, isLoggedIn, navigate, setActiveTourId, setMode, targetId, targetType])
 
   if (errorMessage) {
     return <div className='app-screen'><p className='notice notice-error'>{errorMessage}</p></div>
