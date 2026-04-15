@@ -75,67 +75,95 @@ export const RegisterScreen = () => {
 
         <div className='auth-card'>
           <div className='auth-form'>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              aria-label={t('full_name')}
-              data-testid='register-name'
-              className='field__input'
-            />
+            <label className='field'>
+              <span className='field__label'>{t('full_name')}</span>
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete='name'
+                aria-label={t('full_name')}
+                data-testid='register-name'
+                className='field__input'
+              />
+            </label>
 
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type='email'
-              aria-label={t('email')}
-              data-testid='register-email'
-              className='field__input'
-            />
+            <label className='field'>
+              <span className='field__label'>{t('email')}</span>
+              <input
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                type='email'
+                autoComplete='email'
+                aria-label={t('email')}
+                data-testid='register-email'
+                className='field__input'
+              />
+            </label>
 
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type='password'
-              aria-label={t('password')}
-              data-testid='register-password'
-              className='field__input'
-            />
+            <label className='field'>
+              <span className='field__label'>{t('password')}</span>
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type='password'
+                autoComplete='new-password'
+                aria-label={t('password')}
+                data-testid='register-password'
+                className='field__input'
+              />
+            </label>
 
-            <input
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              type='password'
-              aria-label={t('confirm_password')}
-              data-testid='register-confirm-password'
-              className='field__input'
-            />
+            <label className='field'>
+              <span className='field__label'>{t('confirm_password')}</span>
+              <input
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                type='password'
+                autoComplete='new-password'
+                aria-label={t('confirm_password')}
+                data-testid='register-confirm-password'
+                className='field__input'
+              />
+            </label>
 
-            <input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              aria-label={t('phone')}
-              className='field__input'
-            />
+            <label className='field'>
+              <span className='field__label'>{`${t('phone')} (${t('optional')})`}</span>
+              <input
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                autoComplete='tel'
+                aria-label={t('phone')}
+                className='field__input'
+              />
+            </label>
 
-            <input
-              value={dateOfBirth}
-              onChange={(event) => setDateOfBirth(event.target.value)}
-              type='date'
-              aria-label={t('date_of_birth')}
-              className='field__input'
-            />
+            <label className='field'>
+              <span className='field__label'>{`${t('date_of_birth')} (${t('optional')})`}</span>
+              <input
+                value={dateOfBirth}
+                onChange={(event) => setDateOfBirth(event.target.value)}
+                type='date'
+                autoComplete='bday'
+                datatype={'dd/MM/yyyy'}
+                aria-label={t('date_of_birth')}
+                className='field__input'
+              />
+            </label>
 
-            <select
-              value={gender}
-              onChange={(event) => setGender(event.target.value)}
-              aria-label={t('gender')}
-              className='field__input'
-            >
-              <option value=''>{`${t('gender')} (${t('optional')})`}</option>
-              <option value='male'>{t('male')}</option>
-              <option value='female'>{t('female')}</option>
-              <option value='other'>{t('other_gender')}</option>
-            </select>
+            <label className='field'>
+              <span className='field__label'>{`${t('gender')} (${t('optional')})`}</span>
+              <select
+                value={gender}
+                onChange={(event) => setGender(event.target.value)}
+                aria-label={t('gender')}
+                className='field__input'
+              >
+                <option value=''>{`${t('gender')} (${t('optional')})`}</option>
+                <option value='male'>{t('male')}</option>
+                <option value='female'>{t('female')}</option>
+                <option value='other'>{t('other_gender')}</option>
+              </select>
+            </label>
 
             {errorMessage && (
               <div className='notice notice-error' data-testid='register-error'>
