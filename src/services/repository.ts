@@ -297,6 +297,11 @@ export const resolveQrTarget = async (targetType: 'stall' | 'tour', targetId: st
   return data
 }
 
+export const resolveQrCode = async (code: string): Promise<PublicQrResolveResponse> => {
+  const { data } = await api.get<PublicQrResolveResponse>(`/api/v1/public/qr/code/${encodeURIComponent(code)}`)
+  return data
+}
+
 export const filterPoisByActiveTour = (pois: Poi[], tour: Tour | null): Poi[] => {
   if (!tour) return pois
   const tourPoiIds = new Set(tour.poiIds)

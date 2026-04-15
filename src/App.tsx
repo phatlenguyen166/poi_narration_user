@@ -101,6 +101,7 @@ function App() {
         </Route>
 
         <Route path='/poi' element={<PoiEntryScreen />} />
+        <Route path='/qr/code/:qrCode' element={<QrResolveScreen />} />
         <Route path='/qr/:targetType/:targetId' element={<QrResolveScreen />} />
 
         <Route element={<RequireAuth />}>
