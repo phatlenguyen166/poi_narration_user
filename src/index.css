@@ -565,7 +565,7 @@ select {
   z-index: 14;
   width: min(360px, calc(100vw - 40px));
   padding-right: 4px;
-  overflow: auto;
+  overflow: hidden;
   transition:
     transform 0.22s ease,
     opacity 0.22s ease;
@@ -626,6 +626,10 @@ select {
   min-height: 0;
   align-content: start;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: calc(100vh - 260px);
 }
 
 .home-detail-card {
@@ -783,9 +787,19 @@ select {
 }
 
 .poi-list--compact {
+  display: grid;
+  gap: 10px;
   min-height: 0;
-  overflow: auto;
-  padding-right: 4px;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  flex: 1 1 auto;
+  scrollbar-gutter: stable;
+}
+
+.poi-list--compact .poi-card {
+  min-height: 126px;
 }
 
 .poi-card__media {
@@ -1172,8 +1186,8 @@ select {
   }
 
   .home-results-card {
-    max-height: calc(100vh - 152px);
-    overflow: auto;
+    max-height: calc(100vh - 320px);
+    overflow: hidden;
   }
 
   .home-detail-card--floating {

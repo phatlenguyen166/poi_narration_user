@@ -30,6 +30,22 @@ interface PublicQrResolveResponse {
   description: string | null
 }
 
+interface ResolveNearestPoiResponse {
+  matched: boolean
+  poi: PublicPoiResponse | null
+  distanceMeters: number | null
+  tie: boolean
+  tieResolvedBy: 'PRIORITY' | 'ID' | null
+}
+
+interface PublicTourResponse {
+  id: number
+  name: string
+  description: string | null
+  estimatedDurationMinutes: number | null
+  poiIds: number[]
+}
+
 const sameText = (value: string): Record<AppLanguage, string> => ({
   'vi-VN': value,
   'en-US': value,
@@ -138,30 +154,34 @@ export const fetchPois = async (): Promise<Poi[]> => {
   return data.map(mapPoi)
 }
 
-export const fetchTours = async (): Promise<Tour[]> => {
-  const pois = await fetchPois()
-  const grouped = new Map<string, Poi[]>()
-
-  for (const poi of pois) {
-    if (!poi.stallId) continue
-    const existing = grouped.get(poi.stallId) || []
-    existing.push(poi)
-    grouped.set(poi.stallId, existing)
-  }
-
-  return Array.from(grouped.entries()).map(([stallId, stallPois]) => {
-    const firstPoi = stallPois[0]
-    const fallbackDescription = firstPoi?.stallDescription?.['en-US'] || ''
-
-    return {
-      id: `stall-${stallId}`,
-      icon: getTourIcon(firstPoi?.stallName || ''),
-      estimatedMinutes: Math.max(15, stallPois.length * 12),
-      poiIds: stallPois.map((poi) => poi.id),
-      name: sameText(firstPoi?.stallName || `Stall ${stallId}`),
-      description: sameText(fallbackDescription)
-    }
+export const resolveNearestPoi = async (params: {
+  position: GeoPoint
+  candidatePoiIds?: string[]
+}): Promise<{ poi: Poi | null; distanceMeters: number | null; tie: boolean; tieResolvedBy: string | null }> => {
+  const { data } = await api.post<ResolveNearestPoiResponse>('/api/v1/public/pois/resolve-nearest', {
+    latitude: params.position.latitude,
+    longitude: params.position.longitude,
+    candidatePoiIds: params.candidatePoiIds?.map(Number) ?? []
   })
+
+  return {
+    poi: data.matched && data.poi ? mapPoi(data.poi) : null,
+    distanceMeters: data.distanceMeters,
+    tie: data.tie,
+    tieResolvedBy: data.tieResolvedBy
+  }
+}
+
+export const fetchTours = async (): Promise<Tour[]> => {
+  const { data } = await api.get<PublicTourResponse[]>('/api/v1/public/tours')
+  return data.map((tour) => ({
+    id: String(tour.id),
+    icon: getTourIcon(tour.name),
+    estimatedMinutes: tour.estimatedDurationMinutes ?? Math.max(15, tour.poiIds.length * 12),
+    poiIds: tour.poiIds.map(String),
+    name: sameText(tour.name),
+    description: sameText(tour.description || tour.name)
+  }))
 }
 
 export const createPlaybackLog = async (params: {
@@ -218,10 +238,10 @@ export const resolveQrTarget = async (targetType: 'stall' | 'tour', targetId: st
   return data
 }
 
-export const filterPoisByActiveTour = (pois: Poi[], activeTourId: string | null): Poi[] => {
-  if (!activeTourId?.startsWith('stall-')) return pois
-  const stallId = activeTourId.replace('stall-', '')
-  return pois.filter((poi) => poi.stallId === stallId)
+export const filterPoisByActiveTour = (pois: Poi[], tour: Tour | null): Poi[] => {
+  if (!tour) return pois
+  const tourPoiIds = new Set(tour.poiIds)
+  return pois.filter((poi) => tourPoiIds.has(poi.id))
 }
 
 export const getAudioSources = (poi: Poi, language: AppLanguage): string[] => {

@@ -11,7 +11,8 @@ import {
   filterPoisByActiveTour,
   getAudioSources,
   getPreferredAudioSource,
-  poiHasAudioSource
+  poiHasAudioSource,
+  resolveNearestPoi
 } from '../services/repository'
 import type { GeoPoint, Poi } from '../types'
 import { calculateDistanceMeters, findNearbyPoi, getDistanceToNearestPoi, shouldTriggerCooldown } from '../utils/distance'
@@ -50,7 +51,7 @@ export const HomeScreen = () => {
 
   const scopedPois = useMemo(() => {
     if (mode === 'travel' && activeTour) {
-      return filterPoisByActiveTour(pois, activeTour.id)
+      return filterPoisByActiveTour(pois, activeTour)
     }
     if (mode === 'travel') {
       return []
@@ -245,7 +246,21 @@ export const HomeScreen = () => {
           setUserLocation(nextLocation)
           setLocationError(null)
 
-          const nearby = findNearbyPoi(nextLocation, scopedPois)
+          let nearby = findNearbyPoi(nextLocation, scopedPois)
+          let nearbyDistance = nearby ? Math.round(getDistanceToNearestPoi(nextLocation, [nearby])) : null
+          if (scopedPois.length > 0) {
+            try {
+              const resolved = await resolveNearestPoi({
+                position: nextLocation,
+                candidatePoiIds: scopedPois.map((poi) => poi.id)
+              })
+              nearby = resolved.poi
+              nearbyDistance = resolved.distanceMeters === null ? null : Math.round(resolved.distanceMeters)
+            } catch {
+              nearby = findNearbyPoi(nextLocation, scopedPois)
+              nearbyDistance = nearby ? Math.round(getDistanceToNearestPoi(nextLocation, [nearby])) : null
+            }
+          }
           const movementTarget = nearby ?? scopedPois[0] ?? null
           if (movementTarget?.stallId) {
             void createMovementLog({
@@ -253,7 +268,7 @@ export const HomeScreen = () => {
               stallId: movementTarget.stallId,
               position: nextLocation,
               source: mode === 'travel' ? 'travel_watch' : 'explore_view',
-              distanceToStallMeters: nearby ? Math.round(getDistanceToNearestPoi(nextLocation, [nearby])) : null,
+              distanceToStallMeters: nearbyDistance,
               eventType: nearby ? 'ENTER' : 'DWELL'
             })
           }
