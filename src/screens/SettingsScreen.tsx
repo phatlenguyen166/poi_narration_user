@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import { useAvailableLanguages } from '../hooks/useAvailableLanguages'
 import { useTranslation } from '../hooks/useTranslation'
+import { endTravelSession } from '../services/repository'
 
 export const SettingsScreen = () => {
   const navigate = useNavigate()
   const t = useTranslation()
-  const { mode, language, backgroundMode, setMode, setLanguage, setBackgroundMode, signOut } = useApp()
+  const { mode, language, backgroundMode, activeTourId, setMode, setLanguage, setBackgroundMode, setActiveTourId, signOut } = useApp()
   const availableLanguages = useAvailableLanguages()
 
   const [selectedMode, setSelectedMode] = useState(mode)
@@ -16,7 +17,11 @@ export const SettingsScreen = () => {
   const [message, setMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const save = (): void => {
+  const save = async (): Promise<void> => {
+    if (mode === 'travel' && selectedMode !== 'travel' && activeTourId) {
+      await endTravelSession()
+      setActiveTourId(null)
+    }
     setMode(selectedMode)
     setLanguage(selectedLanguage)
     setBackgroundMode(selectedBackgroundMode)
@@ -72,18 +77,29 @@ export const SettingsScreen = () => {
                 {t('settings_title')}
               </h1>
             </div>
-            <button
-              type='button'
-              onClick={() => {
-                signOut()
-                navigate('/login', { replace: true })
-              }}
-              data-testid='settings-signout'
-              className='button button-secondary'
-              style={{ width: 'auto', minHeight: '46px', paddingInline: '18px' }}
-            >
-              {t('sign_out')}
-            </button>
+            <div className='topbar__cluster topbar__cluster--right'>
+              <button
+                type='button'
+                onClick={() => navigate('/')}
+                className='icon-button'
+                aria-label='Go to home page'
+                title='Home'
+              >
+                ⌂
+              </button>
+              <button
+                type='button'
+                onClick={() => {
+                  signOut()
+                  navigate('/login', { replace: true })
+                }}
+                data-testid='settings-signout'
+                className='button button-secondary'
+                style={{ width: 'auto', minHeight: '46px', paddingInline: '18px' }}
+              >
+                {t('sign_out')}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -175,7 +191,7 @@ export const SettingsScreen = () => {
 
         <button
           type='button'
-          onClick={save}
+          onClick={() => void save()}
           data-testid='settings-save'
           className='button button-primary'
         >

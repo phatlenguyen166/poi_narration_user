@@ -39,12 +39,7 @@ export const WelcomeScreen = () => {
     setMode(selectedMode)
     setLanguage(selectedLanguage)
     completeFirstLaunch()
-
-    if (selectedMode === 'travel') {
-      navigate('/tour-selection', { replace: true })
-      return
-    }
-    navigate('/home', { replace: true })
+    navigate('/device-check', { replace: true })
   }
 
   return (

@@ -6,6 +6,7 @@ import type { UserProfile } from '../types'
 export type AuthErrorKey =
   | 'email_not_registered'
   | 'invalid_credentials'
+  | 'account_locked'
   | 'email_already_registered'
   | 'google_not_configured'
   | 'google_sign_in_failed'
@@ -27,6 +28,14 @@ interface AuthResponse {
     phoneNumber?: string | null
     role?: string | null
   }
+}
+
+interface MeResponse {
+  id: number
+  name: string
+  email: string
+  phoneNumber?: string | null
+  role?: string | null
 }
 
 class AuthService {
@@ -53,6 +62,35 @@ class AuthService {
 
   getCurrentUser(): UserProfile | null {
     return this.currentUser
+  }
+
+  async validateSession(): Promise<UserProfile | null> {
+    const accessToken = preferences.getAccessToken()
+    if (!accessToken) {
+      this.clearSession()
+      return null
+    }
+
+    try {
+      const { data } = await api.get<MeResponse>('/api/v1/auth/me', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      })
+      const user: UserProfile = {
+        id: String(data.id),
+        name: data.name,
+        email: data.email,
+        phone: data.phoneNumber || undefined,
+        createdAt: this.currentUser?.createdAt ?? new Date().toISOString()
+      }
+      this.currentUser = user
+      preferences.setUserJson(JSON.stringify(user))
+      return user
+    } catch {
+      this.clearSession()
+      return null
+    }
   }
 
   async signInWithEmail(email: string, password: string): Promise<AuthResult> {
@@ -137,6 +175,9 @@ class AuthService {
 
     if (status === 409 || message.includes('đã tồn tại') || message.includes('already')) {
       return 'email_already_registered'
+    }
+    if (status === 403 || message.includes('bị khóa') || message.includes('inactive') || message.includes('locked')) {
+      return 'account_locked'
     }
     if (status === 401 || status === 403 || message.includes('mật khẩu') || message.includes('password')) {
       return 'invalid_credentials'

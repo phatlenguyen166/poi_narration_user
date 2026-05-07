@@ -41,6 +41,12 @@ export const preferences = {
   setFirstLaunchCompleted(): void {
     set(STORAGE_KEYS.firstLaunch, 'false')
   },
+  getDeviceCheckCompleted(): boolean {
+    return getBool(STORAGE_KEYS.deviceCheckCompleted, false)
+  },
+  setDeviceCheckCompleted(): void {
+    set(STORAGE_KEYS.deviceCheckCompleted, 'true')
+  },
   getAppMode(): AppMode {
     const value = get(STORAGE_KEYS.appMode)
     if (value === 'travel' || value === 'explore') {
@@ -76,6 +82,31 @@ export const preferences = {
       return
     }
     set(STORAGE_KEYS.activeTourId, tourId)
+  },
+  getActiveTouristTourId(): string | null {
+    return get(STORAGE_KEYS.activeTouristTourId)
+  },
+  setActiveTouristTourId(touristTourId: string | null): void {
+    if (touristTourId === null) {
+      remove(STORAGE_KEYS.activeTouristTourId)
+      return
+    }
+    set(STORAGE_KEYS.activeTouristTourId, touristTourId)
+  },
+  getActiveTourSessionId(): string | null {
+    return get(STORAGE_KEYS.activeTourSessionId)
+  },
+  setActiveTourSessionId(sessionId: string | null): void {
+    if (sessionId === null) {
+      remove(STORAGE_KEYS.activeTourSessionId)
+      return
+    }
+    set(STORAGE_KEYS.activeTourSessionId, sessionId)
+  },
+  clearActiveTravelState(): void {
+    remove(STORAGE_KEYS.activeTourId)
+    remove(STORAGE_KEYS.activeTouristTourId)
+    remove(STORAGE_KEYS.activeTourSessionId)
   },
   isLoggedIn(): boolean {
     return getBool(STORAGE_KEYS.isLoggedIn, false)
